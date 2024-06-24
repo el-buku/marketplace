@@ -33,6 +33,7 @@ import {
   setPrice,
   updateReserve,
   listPNftForSale,
+  delistPNft,
 } from './scripts';
 
 dotenv.config({ path: __dirname + '/../.env' });
@@ -244,7 +245,7 @@ programCommand('pdelist')
       return;
     }
 
-    await delistPnft(new PublicKey(address));
+    await delistPNft(new PublicKey(address));
   });
 
 programCommand('set_price')

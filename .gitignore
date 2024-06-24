@@ -10,3 +10,4 @@ programs/**/target
 dist
 build
 test-ledger
+./local-creator.json

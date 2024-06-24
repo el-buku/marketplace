@@ -924,6 +924,21 @@ export const createDelistPNftTx = async (
   );
 
   console.log('Dest PNFT Account = ', destinationAccounts[0].toBase58());
+  const nftEdition = await getMasterEdition(mint);
+  console.log('nftEdition:', nftEdition);
+
+  const tokenMintRecord = findTokenRecordPda(new anchor.web3.PublicKey(mint), userTokenAccount);
+  const userAccountExisted = await connection.getAccountInfo(new anchor.web3.PublicKey(userTokenAccount));
+  console.log('tokenMintRecord: ', tokenMintRecord.toBase58());
+
+  const destTokenMintRecord = findTokenRecordPda(new anchor.web3.PublicKey(mint), destinationAccounts[0]);
+  const accountExisted = await connection.getAccountInfo(new anchor.web3.PublicKey(destinationAccounts[0]));
+  console.log('destTokenMintRecord: ', destTokenMintRecord.toBase58());
+  console.log('accountExisted: ', accountExisted);
+  console.log('instructions: ', instructions);
+
+  const metadata = await getMetadata(mint);
+  console.log('Metadata=', metadata.toBase58());
 
   let tx = new Transaction();
 
@@ -938,8 +953,19 @@ export const createDelistPNftTx = async (
         userTokenAccount,
         destNftTokenAccount: destinationAccounts[0],
         nftMint: mint,
-        tokenProgram: TOKEN_PROGRAM_ID,
+        tokenMint: mint,
+        mintMetadata: metadata,
+        tokenMintEdition: nftEdition,
+        tokenMintRecord: tokenMintRecord,
+        destTokenMintRecord: destTokenMintRecord,
+        systemProgram: SystemProgram.programId,
         auctionDataInfo: auctionData,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        tokenMetadataProgram: METAPLEX,
+        authRules: MPL_DEFAULT_RULE_SET,
+        sysvarInstructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        authRulesProgram: TOKEN_AUTH_RULES_ID,
       },
       instructions: [],
       signers: [],
