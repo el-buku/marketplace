@@ -1,0 +1,15 @@
+[features]
+seeds = false
+[programs.devnet]
+mugs_marketplace = "SxroDQSC4VbJzLSG6SK2PhEGaK2uydoEJ6P7AB6HdZD"
+
+[registry]
+url = "https://anchor.projectserum.com"
+
+[provider]
+cluster = "https://devnet.helius-rpc.com/?api-key=4401b929-7687-43b5-ab0b-77a34de621e9"
+# cluster = "devnet"
+wallet = "./local-creator.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

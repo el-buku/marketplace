@@ -1,0 +1,12 @@
+/Users/buku/Downloads/cli/target/sbf-solana-solana/release/deps/libahash-56993100d5a88296.rmeta: /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/lib.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/convert.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/fallback_hash.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/operations.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/random_state.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/specialize.rs
+
+/Users/buku/Downloads/cli/target/sbf-solana-solana/release/deps/libahash-56993100d5a88296.rlib: /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/lib.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/convert.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/fallback_hash.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/operations.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/random_state.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/specialize.rs
+
+/Users/buku/Downloads/cli/target/sbf-solana-solana/release/deps/ahash-56993100d5a88296.d: /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/lib.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/convert.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/fallback_hash.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/operations.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/random_state.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/specialize.rs
+
+/Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/lib.rs:
+/Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/convert.rs:
+/Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/fallback_hash.rs:
+/Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/operations.rs:
+/Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/random_state.rs:
+/Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/ahash-0.7.8/src/specialize.rs:
