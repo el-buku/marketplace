@@ -1758,8 +1758,8 @@ export const createCreateAuctionPnftTx = async (
     globalAuthority,
     [mint],
   );
-
-  console.log('Dest NFT Account = ', destinationAccounts[0].toBase58());
+  const destTokenAccount = destinationAccounts[0];
+  console.log('Dest NFT Account = ', destTokenAccount.toBase58());
   const nftEdition = await getMasterEdition(mint);
   console.log('nftEdition:', nftEdition);
 
@@ -1767,8 +1767,8 @@ export const createCreateAuctionPnftTx = async (
   const userAccountExisted = await connection.getAccountInfo(new anchor.web3.PublicKey(userTokenAccount));
   console.log('tokenMintRecord: ', tokenMintRecord.toBase58());
 
-  const destTokenMintRecord = findTokenRecordPda(new anchor.web3.PublicKey(mint), destinationAccounts[0]);
-  const accountExisted = await connection.getAccountInfo(new anchor.web3.PublicKey(destinationAccounts[0]));
+  const destTokenMintRecord = findTokenRecordPda(new anchor.web3.PublicKey(mint), destTokenAccount);
+  const accountExisted = await connection.getAccountInfo(new anchor.web3.PublicKey(destTokenAccount));
   console.log('destTokenMintRecord: ', destTokenMintRecord.toBase58());
   console.log('accountExisted: ', accountExisted);
   console.log('instructions: ', instructions);
@@ -1795,7 +1795,7 @@ export const createCreateAuctionPnftTx = async (
           globalAuthority,
           auctionDataInfo: auctionData,
           userTokenAccount,
-          destNftTokenAccount: destinationAccounts[0],
+          destNftTokenAccount: destTokenAccount,
           nftMint: mint,
           tokenMint: mint,
           mintMetadata: metadata,

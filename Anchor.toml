@@ -1,13 +1,13 @@
 [features]
 seeds = false
 [programs.devnet]
-mugs_marketplace = "D8MwjwdpEEPN1MbEQJRn2hgzZAFtXDV5h7pYHREQeMrU"
+mugs_marketplace = "8hPQdxFY1yvdemtxbaDF1x9u6GE2BwHAkQsn8QdxJew1"
 
 [registry]
 url = "https://anchor.projectserum.com"
 
 [provider]
-cluster = "https://rpc-devnet.hellomoon.io/6a21468a-dd17-4158-a684-29d180654392"
+cluster = "https://devnet.helius-rpc.com/?api-key=4401b929-7687-43b5-ab0b-77a34de621e9"
 # cluster = "devnet"
 wallet = "./local-creator.json"
 

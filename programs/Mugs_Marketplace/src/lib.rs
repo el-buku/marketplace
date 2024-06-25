@@ -15,7 +15,7 @@ use account::*;
 use constants::*;
 use error::*;
 
-declare_id!("D8MwjwdpEEPN1MbEQJRn2hgzZAFtXDV5h7pYHREQeMrU");
+declare_id!("8hPQdxFY1yvdemtxbaDF1x9u6GE2BwHAkQsn8QdxJew1");
 
 #[program]
 pub mod mugs_marketplace {
@@ -1903,15 +1903,12 @@ pub mod mugs_marketplace {
             if nft_mint.owner != ctx.accounts.token_program.key {
                 msg!("NFT Mint Owner Err: {:?}", nft_mint.owner);
             }
-            if &dest_token_account_info.owner != ctx.accounts.token_program.key {
-                msg!("Dest Token Owner Err: {:?}", dest_token_account_info.owner);
+            if &token_account_info.owner != ctx.accounts.token_program.key {
+                msg!("Token Owner Err: {:?}", token_account_info.owner);
             }
 
-            if dest_token_mint_record.owner != ctx.accounts.token_metadata_program.key {
-                msg!(
-                    "Dest Token Mint Record Owner Err: {:?}",
-                    dest_token_mint_record.owner
-                );
+            if token_mint_record.owner != ctx.accounts.token_metadata_program.key {
+                msg!("Token Mint Record Owner Err: {:?}", token_mint_record.owner);
             }
             if auth_rules.owner != ctx.accounts.auth_rules_program.key {
                 msg!("Auth Rules Owner Err: {:?}", auth_rules.owner);
