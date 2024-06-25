@@ -12,3 +12,4 @@ build
 test-ledger
 local-creator.json
 local-creator*.json
+__azurite*
