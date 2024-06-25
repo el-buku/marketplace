@@ -15,7 +15,7 @@ use account::*;
 use constants::*;
 use error::*;
 
-declare_id!("8hPQdxFY1yvdemtxbaDF1x9u6GE2BwHAkQsn8QdxJew1");
+declare_id!("B3Tyy54DYevgJH8WUymqdMQ6QvDSnp77fqidJy6Agk4J");
 
 #[program]
 pub mod mugs_marketplace {
@@ -2127,11 +2127,11 @@ pub mod mugs_marketplace {
 
         let bidder_user_pool = &mut ctx.accounts.bidder_user_pool;
         let creator_user_pool = &mut ctx.accounts.creator_user_pool;
-        // Assert Bidder User PDA Address
-        require!(
-            ctx.accounts.bidder.key().eq(&bidder_user_pool.address),
-            MarketplaceError::BidderAccountMismatch
-        );
+        // // Assert Bidder User PDA Address
+        // require!(
+        //     ctx.accounts.bidder.key().eq(&bidder_user_pool.address),
+        //     MarketplaceError::BidderAccountMismatch
+        // );
         // Assert Creator User PDA Address
         require!(
             ctx.accounts.creator.key().eq(&creator_user_pool.address),
@@ -2439,7 +2439,7 @@ pub mod mugs_marketplace {
         let seeds = &[GLOBAL_AUTHORITY_SEED.as_bytes(), &[global_bump]];
         let signer = &[&seeds[..]];
         let global_authority = &ctx.accounts.global_authority;
-        let owner = &ctx.accounts.creator;
+        let owner = &ctx.accounts.bidder;
         let token_account_info = &ctx.accounts.user_token_account;
         let nft_mint = &ctx.accounts.nft_mint;
 
@@ -4062,6 +4062,7 @@ pub struct ClaimAuctionPNft<'info> {
     #[account(
         mut,
         seeds = [USER_DATA_SEED.as_ref(), bidder.key().as_ref()],
+        constraint = bidder_user_pool.address == bidder.key(),
         bump,
     )]
     pub bidder_user_pool: Box<Account<'info, UserData>>,

@@ -1,7 +1,7 @@
 [features]
 seeds = false
 [programs.devnet]
-mugs_marketplace = "8hPQdxFY1yvdemtxbaDF1x9u6GE2BwHAkQsn8QdxJew1"
+mugs_marketplace = "B3Tyy54DYevgJH8WUymqdMQ6QvDSnp77fqidJy6Agk4J"
 
 [registry]
 url = "https://anchor.projectserum.com"
