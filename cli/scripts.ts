@@ -56,6 +56,8 @@ import {
   getOfferDataState,
   getUserPoolState,
   createCreateAuctionPnftTx,
+  createCancelAuctionPnftTx,
+  createClaimAuctionPnftTx,
 } from '../lib/scripts';
 import { isInitializedUser } from '../lib/utils';
 
@@ -720,6 +722,33 @@ export const claimAuction = async (mint: PublicKey) => {
   tx.feePayer = payer.publicKey;
   tx.recentBlockhash = blockhash;
   payer.signTransaction(tx);
+  let txId = await solConnection.sendTransaction(tx, [(payer as NodeWallet).payer]);
+  await solConnection.confirmTransaction(txId, 'confirmed');
+  console.log('Your transaction signature', txId);
+};
+export const claimAuctionPnft = async (mint: PublicKey) => {
+  console.log(mint.toBase58());
+
+  if (!(await isInitializedUser(payer.publicKey, solConnection))) {
+    console.log('User PDA is not Initialized. Should Init User PDA for first usage');
+    await initUserPool();
+  }
+
+  const globalPool: GlobalPool = await getGlobalState(program);
+
+  const tx = await createClaimAuctionPnftTx(
+    mint,
+    payer.publicKey,
+    globalPool.teamTreasury.slice(0, globalPool.teamCount.toNumber()),
+    program,
+    solConnection,
+  );
+  const { blockhash } = await solConnection.getRecentBlockhash('confirmed');
+  tx.feePayer = payer.publicKey;
+  tx.recentBlockhash = blockhash;
+  payer.signTransaction(tx);
+  const simulatieTx = await solConnection.simulateTransaction(tx);
+  console.log('tx =====>', simulatieTx);
   let txId = await solConnection.sendTransaction(tx, [(payer as NodeWallet).payer]);
   await solConnection.confirmTransaction(txId, 'confirmed');
   console.log('Your transaction signature', txId);

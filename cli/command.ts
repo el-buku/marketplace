@@ -37,6 +37,7 @@ import {
   purchasePNft,
   createAuctionPNft,
   cancelAuctionPnft,
+  claimAuctionPnft,
 } from './scripts';
 
 dotenv.config({ path: __dirname + '/../.env' });
@@ -492,6 +493,23 @@ programCommand('claim_auction')
     }
 
     await claimAuction(new PublicKey(address));
+  });
+
+programCommand('pclaim_auction')
+  .option('-a, --address <string>', 'nft mint pubkey')
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  .action(async (directory, cmd) => {
+    const { env, address } = cmd.opts();
+
+    console.log('Solana config: ', env);
+    await setClusterConfig(env);
+
+    if (address === undefined) {
+      console.log('Error Mint input');
+      return;
+    }
+
+    await claimAuctionPnft(new PublicKey(address));
   });
 
 programCommand('update_reserve')

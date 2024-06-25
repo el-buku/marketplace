@@ -1983,6 +1983,127 @@ export const createClaimAuctionTx = async (
   return tx;
 };
 
+export const createClaimAuctionPnftTx = async (
+  mint: PublicKey,
+  userAddress: PublicKey,
+  treasuryAddresses: PublicKey[],
+  program: anchor.Program,
+  connection: Connection,
+) => {
+  let ret = await getATokenAccountsNeedCreate(connection, userAddress, userAddress, [mint]);
+
+  const [globalAuthority, bump] = await PublicKey.findProgramAddress(
+    [Buffer.from(GLOBAL_AUTHORITY_SEED)],
+    MARKETPLACE_PROGRAM_ID,
+  );
+
+  const [nftData, nft_bump] = await PublicKey.findProgramAddress(
+    [Buffer.from(AUCTION_DATA_SEED), mint.toBuffer()],
+    MARKETPLACE_PROGRAM_ID,
+  );
+
+  const [escrowVault, escrow_bump] = await PublicKey.findProgramAddress(
+    [Buffer.from(ESCROW_VAULT_SEED)],
+    MARKETPLACE_PROGRAM_ID,
+  );
+
+  let tx = new Transaction();
+  let userTokenAccount = ret.destinationAccounts[0];
+  let destNftTokenAccount = await getAssociatedTokenAccount(globalAuthority, mint);
+  console.log('Bidder NFT Account = ', userTokenAccount.toBase58());
+
+  let auctionInfo = await getAuctionDataState(mint, program);
+  let creator = auctionInfo.creator;
+  if (ret.instructions.length > 0) ret.instructions.map((ix) => tx.add(ix));
+
+  const [userPool, user_bump] = await PublicKey.findProgramAddress(
+    [Buffer.from(USER_DATA_SEED), userAddress.toBuffer()],
+    MARKETPLACE_PROGRAM_ID,
+  );
+
+  const [creatorUserPool, creator_bump] = await PublicKey.findProgramAddress(
+    [Buffer.from(USER_DATA_SEED), creator.toBuffer()],
+    MARKETPLACE_PROGRAM_ID,
+  );
+  const nftEdition = await getMasterEdition(mint);
+  console.log('nftEdition:', nftEdition);
+
+  const tokenMintRecord = findTokenRecordPda(new anchor.web3.PublicKey(mint), userTokenAccount);
+  const userAccountExisted = await connection.getAccountInfo(new anchor.web3.PublicKey(userTokenAccount));
+  console.log('tokenMintRecord: ', tokenMintRecord.toBase58());
+
+  const destTokenMintRecord = findTokenRecordPda(new anchor.web3.PublicKey(mint), destNftTokenAccount);
+  const accountExisted = await connection.getAccountInfo(new anchor.web3.PublicKey(destNftTokenAccount));
+  console.log('destTokenMintRecord: ', destTokenMintRecord.toBase58());
+  console.log('accountExisted: ', accountExisted);
+
+  const mintMetadata = await getMetadata(mint);
+  console.log('Metadata=', mintMetadata.toBase58());
+
+  let {
+    metadata: { Metadata },
+  } = programs;
+  let metadataAccount = await Metadata.getPDA(mint);
+  const metadata = await Metadata.load(connection, metadataAccount);
+  let creators = metadata.data.data.creators;
+
+  let treasuryAccounts: PublicKey[] = treasuryAddresses;
+  console.log(
+    '=> Treasury Accounts:',
+    treasuryAccounts.map((address) => address.toBase58()),
+  );
+
+  let remainingAccounts = [];
+  treasuryAccounts.map((address) => {
+    remainingAccounts.push({
+      pubkey: address,
+      isWritable: true,
+      isSigner: false,
+    });
+  });
+  creators.map((creator) => {
+    remainingAccounts.push({
+      pubkey: new PublicKey(creator.address),
+      isWritable: true,
+      isSigner: false,
+    });
+  });
+
+  console.log('==> claiming Auction', mint.toBase58(), userAddress.toBase58(), 'Creator:', creator.toBase58());
+  tx.add(
+    program.instruction.claimAuctionPnft(bump, nft_bump, escrow_bump, {
+      accounts: {
+        bidder: userAddress,
+        globalAuthority,
+        auctionDataInfo: nftData,
+        userTokenAccount: ret.destinationAccounts[0],
+        destNftTokenAccount,
+        nftMint: mint,
+        escrowVault,
+        creator,
+        bidderUserPool: userPool,
+        creatorUserPool,
+        mintMetadata,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+        tokenMetadataProgram: METAPLEX,
+        tokenMintEdition: nftEdition,
+        tokenMintRecord: tokenMintRecord,
+        destTokenMintRecord: destTokenMintRecord,
+        authRules: MPL_DEFAULT_RULE_SET,
+        sysvarInstructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        authRulesProgram: TOKEN_AUTH_RULES_ID,
+      },
+      instructions: [],
+      signers: [],
+      remainingAccounts,
+    }),
+  );
+
+  return tx;
+};
+
 export const createUpdateReserveTx = async (
   mint: PublicKey,
   userAddress: PublicKey,

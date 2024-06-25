@@ -240,7 +240,7 @@ pub mod mugs_marketplace {
     }
 
     pub fn list_pnft_for_sale(
-        ctx: Context<ListPnftForSale>,
+        ctx: Context<ListPNftForSale>,
         _global_bump: u8,
         _sell_bump: u8,
         _auction_bump: u8,
@@ -2254,6 +2254,227 @@ pub mod mugs_marketplace {
         Ok(())
     }
 
+    pub fn claim_auction_pnft<'info>(
+        ctx: Context<'_, '_, '_, 'info, ClaimAuctionPNft<'info>>,
+        global_bump: u8,
+        _auction_bump: u8,
+        escrow_bump: u8,
+    ) -> Result<()> {
+        let auction_data_info = &mut ctx.accounts.auction_data_info;
+        msg!("Mint: {:?}", auction_data_info.mint);
+
+        // Assert NFT Pubkey with Sell Data PDA Mint
+        require!(
+            ctx.accounts.nft_mint.key().eq(&auction_data_info.mint),
+            MarketplaceError::InvalidNFTDataAcount
+        );
+
+        // Get Collection address from Metadata
+        let mint_metadata = &mut &ctx.accounts.mint_metadata;
+        msg!("Metadata Account: {:?}", ctx.accounts.mint_metadata.key());
+        let (metadata, _) = Metadata::find_pda(&ctx.accounts.nft_mint.key());
+        require!(
+            metadata == mint_metadata.key(),
+            MarketplaceError::InvaliedMetadata
+        );
+
+        // verify metadata is legit
+        let nft_metadata =
+            Metadata::safe_deserialize(&mut mint_metadata.data.borrow_mut()).unwrap();
+
+        let timestamp = Clock::get()?.unix_timestamp;
+        msg!("Claim Date: {}", timestamp);
+        // Assert NFT Pubkey with Auction Data PDA Mint
+        require!(
+            ctx.accounts.nft_mint.key().eq(&auction_data_info.mint),
+            MarketplaceError::InvalidNFTDataAcount
+        );
+        // Assert Auction End Date is Passed
+        require!(
+            auction_data_info.get_end_date() <= timestamp,
+            MarketplaceError::NotEndedAuction
+        );
+        // Assert Already Ended or Not Started Auction
+        require!(
+            auction_data_info.status == 1,
+            MarketplaceError::NotListedNFT
+        );
+        // Assert Creator Pubkey with Auction Data Creator Address
+        require!(
+            ctx.accounts.creator.key().eq(&auction_data_info.creator),
+            MarketplaceError::CreatorAccountMismatch
+        );
+        // Assert Bidder Pubkey with Auction Data Last Bidder Address
+        require!(
+            ctx.accounts.bidder.key().eq(&auction_data_info.last_bidder),
+            MarketplaceError::BidderAccountMismatch
+        );
+
+        let bidder_user_pool = &mut ctx.accounts.bidder_user_pool;
+        let creator_user_pool = &mut ctx.accounts.creator_user_pool;
+        // Assert Bidder User PDA Address
+        require!(
+            ctx.accounts.bidder.key().eq(&bidder_user_pool.address),
+            MarketplaceError::BidderAccountMismatch
+        );
+        // Assert Creator User PDA Address
+        require!(
+            ctx.accounts.creator.key().eq(&creator_user_pool.address),
+            MarketplaceError::CreatorAccountMismatch
+        );
+
+        // Set Flag as Claimed Auction
+        auction_data_info.status = 2;
+        bidder_user_pool.traded_volume += auction_data_info.highest_bid;
+        creator_user_pool.traded_volume += auction_data_info.highest_bid;
+
+        let token_program = &mut &ctx.accounts.token_program;
+        let token_account_info = &mut &ctx.accounts.user_token_account;
+        let dest_token_account_info = &mut &ctx.accounts.dest_nft_token_account;
+        let seeds = &[ESCROW_VAULT_SEED.as_bytes(), &[escrow_bump]];
+        let signer = &[&seeds[..]];
+
+        let global_authority = &mut ctx.accounts.global_authority;
+        let remaining_accounts: Vec<AccountInfo> = ctx.remaining_accounts.to_vec();
+        require!(
+            global_authority.team_count > 0,
+            MarketplaceError::NoTeamTreasuryYet
+        );
+
+        let creators: &Vec<Creator>;
+        if let Some(cts) = &nft_metadata.creators {
+            creators = cts;
+        } else {
+            return Err(error!(MarketplaceError::MetadataCreatorParseError));
+        };
+        require!(
+            global_authority.team_count + creators.len() as u64 == remaining_accounts.len() as u64,
+            MarketplaceError::TeamTreasuryCountMismatch
+        );
+        let total_share_fee = auction_data_info.highest_bid
+            * (nft_metadata.seller_fee_basis_points as u64)
+            / PERMYRIAD;
+        let fee_amount: u64 =
+            auction_data_info.highest_bid * global_authority.market_fee_sol / PERMYRIAD;
+        let total_fee_amount: u64 = total_share_fee + fee_amount;
+
+        invoke_signed(
+            &system_instruction::transfer(
+                ctx.accounts.escrow_vault.key,
+                ctx.accounts.creator.key,
+                auction_data_info.highest_bid - total_fee_amount,
+            ),
+            &[
+                ctx.accounts.creator.to_account_info().clone(),
+                ctx.accounts.escrow_vault.to_account_info().clone(),
+                ctx.accounts.system_program.to_account_info().clone(),
+            ],
+            signer,
+        )?;
+
+        let mut i = 0;
+        // This is not expensive cuz the max count is 8
+        for team_account in remaining_accounts {
+            if i < global_authority.team_count {
+                // Assert Provided Remaining Account is Treasury
+                require!(
+                    team_account
+                        .key()
+                        .eq(&global_authority.team_treasury[i as usize]),
+                    MarketplaceError::TeamTreasuryAddressMismatch
+                );
+                invoke_signed(
+                    &system_instruction::transfer(
+                        ctx.accounts.escrow_vault.key,
+                        &global_authority.team_treasury[i as usize],
+                        fee_amount * global_authority.treasury_rate[i as usize] / PERMYRIAD,
+                    ),
+                    &[
+                        ctx.accounts.escrow_vault.to_account_info().clone(),
+                        team_account.clone(),
+                        ctx.accounts.system_program.to_account_info().clone(),
+                    ],
+                    signer,
+                )?;
+            } else {
+                for creator in creators {
+                    if creator.address == team_account.key() && creator.share != 0 {
+                        let share_amount: u64 = total_share_fee * (creator.share as u64) / 100;
+                        invoke_signed(
+                            &system_instruction::transfer(
+                                ctx.accounts.escrow_vault.key,
+                                &team_account.key(),
+                                share_amount,
+                            ),
+                            &[
+                                ctx.accounts.escrow_vault.to_account_info().clone(),
+                                team_account.clone(),
+                                ctx.accounts.system_program.to_account_info().clone(),
+                            ],
+                            signer,
+                        )?;
+                    }
+                }
+            }
+            i += 1;
+        }
+        let seeds = &[GLOBAL_AUTHORITY_SEED.as_bytes(), &[global_bump]];
+        let signer = &[&seeds[..]];
+        let global_authority = &ctx.accounts.global_authority;
+        let owner = &ctx.accounts.creator;
+        let token_account_info = &ctx.accounts.user_token_account;
+        let nft_mint = &ctx.accounts.nft_mint;
+
+        let token_mint_edition = &ctx.accounts.token_mint_edition;
+        let token_mint_record = &ctx.accounts.token_mint_record;
+        let dest_token_mint_record = &ctx.accounts.dest_token_mint_record;
+        let system_program = &ctx.accounts.system_program;
+        let sysvar_instructions = &ctx.accounts.sysvar_instructions;
+        let associated_token_program = &ctx.accounts.associated_token_program;
+        let auth_rules_program = &ctx.accounts.auth_rules_program;
+        let auth_rules = &ctx.accounts.auth_rules;
+
+        TransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
+            .authority(&global_authority.to_account_info())
+            .payer(&owner.to_account_info())
+            .mint(&nft_mint.to_account_info())
+            .metadata(&mint_metadata.to_account_info())
+            .edition(Some(&token_mint_edition.to_account_info()))
+            .destination_token(&token_account_info.to_account_info())
+            .destination_owner(&owner.to_account_info())
+            .destination_token_record(Some(&token_mint_record.to_account_info()))
+            .token_record(Some(&dest_token_mint_record.to_account_info()))
+            .token_owner(&global_authority.to_account_info())
+            .token(&dest_token_account_info.to_account_info())
+            .amount(1)
+            .authorization_rules(Some(&auth_rules.to_account_info()))
+            .sysvar_instructions(&sysvar_instructions.to_account_info())
+            .authorization_rules_program(Some(&auth_rules_program.to_account_info()))
+            .spl_ata_program(&associated_token_program.to_account_info())
+            .spl_token_program(&token_program.to_account_info())
+            .system_program(&system_program.to_account_info())
+            .invoke_signed(signer)?;
+
+        invoke_signed(
+            &close_account(
+                token_program.key,
+                &dest_token_account_info.key(),
+                ctx.accounts.bidder.key,
+                &ctx.accounts.global_authority.key(),
+                &[],
+            )?,
+            &[
+                token_program.clone().to_account_info(),
+                dest_token_account_info.to_account_info().clone(),
+                ctx.accounts.bidder.to_account_info().clone(),
+                ctx.accounts.global_authority.to_account_info().clone(),
+            ],
+            signer,
+        )?;
+
+        Ok(())
+    }
+
     pub fn update_reserve(
         ctx: Context<UpdateReserve>,
         _auction_bump: u8,
@@ -2384,7 +2605,7 @@ pub mod mugs_marketplace {
     }
 
     pub fn cancel_auction_pnft(
-        ctx: Context<CancelAuctionPnft>,
+        ctx: Context<CancelAuctionPNft>,
         global_bump: u8,
         _auction_bump: u8,
     ) -> Result<()> {
@@ -2810,7 +3031,7 @@ pub struct ListNftForSale<'info> {
 
 #[derive(Accounts)]
 #[instruction(bump: u8)]
-pub struct ListPnftForSale<'info> {
+pub struct ListPNftForSale<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
 
@@ -3756,6 +3977,107 @@ pub struct ClaimAuction<'info> {
 
 #[derive(Accounts)]
 #[instruction(bump: u8)]
+pub struct ClaimAuctionPNft<'info> {
+    #[account(mut)]
+    pub bidder: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [GLOBAL_AUTHORITY_SEED.as_ref()],
+        bump,
+    )]
+    pub global_authority: Box<Account<'info, GlobalPool>>,
+
+    #[account(
+        mut,
+        seeds = [AUCTION_DATA_SEED.as_ref(), nft_mint.key().to_bytes().as_ref()],
+        bump,
+    )]
+    pub auction_data_info: Account<'info, AuctionData>,
+
+    #[account(
+        mut,
+        constraint = user_token_account.mint == nft_mint.key(),
+        constraint = user_token_account.owner == *bidder.key,
+    )]
+    pub user_token_account: Account<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        constraint = dest_nft_token_account.mint == nft_mint.key(),
+        constraint = dest_nft_token_account.owner == global_authority.key(),
+        constraint = dest_nft_token_account.amount == 1,
+    )]
+    pub dest_nft_token_account: Account<'info, TokenAccount>,
+
+    /// CHECK: This is not dangerous because we don't read or write from this account
+    pub nft_mint: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [ESCROW_VAULT_SEED.as_ref()],
+        bump,
+    )]
+    /// CHECK: This is not dangerous because we don't read or write from this account
+    pub escrow_vault: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [USER_DATA_SEED.as_ref(), bidder.key().as_ref()],
+        bump,
+    )]
+    pub bidder_user_pool: Box<Account<'info, UserData>>,
+
+    #[account(mut)]
+    /// CHECK: This is not dangerous because we don't read or write from this account
+    pub creator: SystemAccount<'info>,
+
+    #[account(
+        mut,
+        seeds = [USER_DATA_SEED.as_ref(), creator.key().as_ref()],
+        bump,
+    )]
+    pub creator_user_pool: Box<Account<'info, UserData>>,
+
+    /// the mint metadata
+    #[account(
+        mut,
+        constraint = mint_metadata.owner == &mpl_token_metadata::ID
+    )]
+    /// CHECK: This is not dangerous because we don't read or write from this account
+    pub mint_metadata: AccountInfo<'info>,
+
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+    /// CHECK: This is not dangerous because we don't read or write from this account
+    #[account(constraint = token_metadata_program.key == &mpl_token_metadata::ID)]
+    pub token_metadata_program: AccountInfo<'info>,
+
+    /// CHECK instruction will fail if wrong edition is supplied
+    pub token_mint_edition: AccountInfo<'info>,
+
+    /// CHECK instruction will fail if wrong record is supplied
+    #[account(mut)]
+    pub token_mint_record: AccountInfo<'info>,
+
+    /// CHECK instruction will fail if wrong record is supplied
+    #[account(mut)]
+    pub dest_token_mint_record: AccountInfo<'info>,
+
+    /// CHECK instruction will fail if wrong rules are supplied
+    pub auth_rules: UncheckedAccount<'info>,
+    /// CHECK instruction will fail if wrong sysvar ixns are supplied
+    pub sysvar_instructions: AccountInfo<'info>,
+
+    /// CHECK: this account is safe
+    pub associated_token_program: Program<'info, associated_token::AssociatedToken>,
+
+    /// CHECK intstruction will fail if wrong program is supplied
+    pub auth_rules_program: AccountInfo<'info>,
+}
+
+#[derive(Accounts)]
+#[instruction(bump: u8)]
 pub struct UpdateReserve<'info> {
     #[account(mut)]
     pub creator: Signer<'info>,
@@ -3820,7 +4142,7 @@ pub struct CancelAuction<'info> {
 
 #[derive(Accounts)]
 #[instruction(bump: u8)]
-pub struct CancelAuctionPnft<'info> {
+pub struct CancelAuctionPNft<'info> {
     #[account(mut)]
     pub creator: Signer<'info>,
 
