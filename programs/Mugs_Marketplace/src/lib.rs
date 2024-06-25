@@ -20,7 +20,9 @@ declare_id!("B3Tyy54DYevgJH8WUymqdMQ6QvDSnp77fqidJy6Agk4J");
 #[program]
 pub mod mugs_marketplace {
 
-    use mpl_token_metadata::instructions::TransferV1CpiBuilder;
+    use mpl_token_metadata::instructions::{
+        DelegateTransferV1, DelegateTransferV1CpiBuilder, TransferV1CpiBuilder,
+    };
 
     use super::*;
 
@@ -660,13 +662,13 @@ pub mod mugs_marketplace {
         let dest_token_account_info = &ctx.accounts.dest_nft_token_account;
         let owner: &Signer = &ctx.accounts.owner;
         let nft_mint = &ctx.accounts.nft_mint;
-        let token_mint_edition = &ctx.accounts.token_mint_edition;
         let token_mint_record = &ctx.accounts.token_mint_record;
+        let token_mint_edition = &ctx.accounts.token_mint_edition;
         let token_program = &ctx.accounts.token_program;
+        let associated_token_program = &ctx.accounts.associated_token_program;
         let dest_token_mint_record = &ctx.accounts.dest_token_mint_record;
         let system_program = &ctx.accounts.system_program;
         let sysvar_instructions = &ctx.accounts.sysvar_instructions;
-        let associated_token_program = &ctx.accounts.associated_token_program;
         let auth_rules_program = &ctx.accounts.auth_rules_program;
         let auth_rules = &ctx.accounts.auth_rules;
         let global_authority = &ctx.accounts.global_authority;
@@ -687,24 +689,19 @@ pub mod mugs_marketplace {
             if expected_token_account == dest_token_account_info.key() {
                 msg!("Create token start");
 
-                TransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
+                DelegateTransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
                     .authority(&owner.to_account_info())
+                    .delegate(&global_authority.to_account_info())
                     .payer(&owner.to_account_info())
+                    .delegate(&global_authority.to_account_info())
                     .mint(&nft_mint.to_account_info())
                     .metadata(&mint_metadata.to_account_info())
-                    .edition(Some(&token_mint_edition.to_account_info()))
                     .token(&token_account_info.to_account_info())
-                    .token_owner(&owner.to_account_info())
                     .token_record(Some(&token_mint_record.to_account_info()))
-                    .destination_token_record(Some(&dest_token_mint_record.to_account_info()))
-                    .destination_owner(&global_authority.to_account_info())
-                    .destination_token(&dest_token_account_info.to_account_info())
                     .amount(1)
                     .authorization_rules(Some(&auth_rules.to_account_info()))
                     .sysvar_instructions(&sysvar_instructions.to_account_info())
                     .authorization_rules_program(Some(&auth_rules_program.to_account_info()))
-                    .spl_ata_program(&associated_token_program.to_account_info())
-                    .spl_token_program(&token_program.to_account_info())
                     .system_program(&system_program.to_account_info())
                     .invoke_signed(signer)?;
                 msg!("Create token account end");
@@ -784,25 +781,18 @@ pub mod mugs_marketplace {
         if auction_data_info.status != 3 {
             msg!("Create token start");
 
-            TransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
+            DelegateTransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
                 .authority(&global_authority.to_account_info())
+                .delegate(&owner.to_account_info())
                 .payer(&owner.to_account_info())
                 .mint(&nft_mint.to_account_info())
                 .metadata(&mint_metadata.to_account_info())
-                .edition(Some(&token_mint_edition.to_account_info()))
-                .destination_token(&token_account_info.to_account_info())
-                .destination_owner(&owner.to_account_info())
-                .destination_token_record(Some(&token_mint_record.to_account_info()))
-                .token_record(Some(&dest_token_mint_record.to_account_info()))
-                .token_owner(&global_authority.to_account_info())
-                .token(&dest_token_account_info.to_account_info())
+                .token_record(Some(&token_mint_record.to_account_info()))
+                .token(&token_account_info.to_account_info())
                 .amount(1)
                 .authorization_rules(Some(&auth_rules.to_account_info()))
                 .sysvar_instructions(&sysvar_instructions.to_account_info())
                 .authorization_rules_program(Some(&auth_rules_program.to_account_info()))
-                .spl_ata_program(&associated_token_program.to_account_info())
-                .spl_token_program(&token_program.to_account_info())
-                .system_program(&system_program.to_account_info())
                 .invoke_signed(signer)?;
             msg!("Create token account end");
         }
@@ -1241,6 +1231,7 @@ pub mod mugs_marketplace {
 
         Ok(())
     }
+
     pub fn claim_auction_pnft<'info>(
         ctx: Context<'_, '_, '_, 'info, ClaimAuctionPNft<'info>>,
         global_bump: u8,
@@ -1567,24 +1558,18 @@ pub mod mugs_marketplace {
                 msg!("Auth Rules Owner Err: {:?}", auth_rules.owner);
             }
 
-            TransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
+            DelegateTransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
                 .authority(&global_authority.to_account_info())
+                .delegate(&owner.to_account_info())
                 .payer(&owner.to_account_info())
                 .mint(&nft_mint.to_account_info())
                 .metadata(&mint_metadata.to_account_info())
-                .edition(Some(&token_mint_edition.to_account_info()))
-                .destination_token(&token_account_info.to_account_info())
-                .destination_owner(&owner.to_account_info())
-                .destination_token_record(Some(&token_mint_record.to_account_info()))
-                .token_record(Some(&dest_token_mint_record.to_account_info()))
-                .token_owner(&global_authority.to_account_info())
-                .token(&dest_token_account_info.to_account_info())
+                .token_record(Some(&token_mint_record.to_account_info()))
+                .token(&token_account_info.to_account_info())
                 .amount(1)
                 .authorization_rules(Some(&auth_rules.to_account_info()))
                 .sysvar_instructions(&sysvar_instructions.to_account_info())
                 .authorization_rules_program(Some(&auth_rules_program.to_account_info()))
-                .spl_ata_program(&associated_token_program.to_account_info())
-                .spl_token_program(&token_program.to_account_info())
                 .system_program(&system_program.to_account_info())
                 .invoke_signed(signer)?;
 
@@ -1698,13 +1683,13 @@ pub mod mugs_marketplace {
         let owner: &Signer = &ctx.accounts.owner;
         let nft_mint = &ctx.accounts.nft_mint;
         let global_authority = &ctx.accounts.global_authority;
-        let token_mint_edition = &ctx.accounts.token_mint_edition;
         let token_mint_record = &ctx.accounts.token_mint_record;
+        let token_mint_edition = &ctx.accounts.token_mint_edition;
         let token_program = &ctx.accounts.token_program;
+        let associated_token_program = &ctx.accounts.associated_token_program;
         let dest_token_mint_record = &ctx.accounts.dest_token_mint_record;
         let system_program = &ctx.accounts.system_program;
         let sysvar_instructions = &ctx.accounts.sysvar_instructions;
-        let associated_token_program = &ctx.accounts.associated_token_program;
         let auth_rules_program = &ctx.accounts.auth_rules_program;
         let auth_rules = &ctx.accounts.auth_rules;
         let seeds = &[GLOBAL_AUTHORITY_SEED.as_bytes(), &[_global_bump]];
@@ -1733,26 +1718,41 @@ pub mod mugs_marketplace {
             if auth_rules.owner != ctx.accounts.auth_rules_program.key {
                 msg!("Auth Rules Owner Err: {:?}", auth_rules.owner);
             }
-            TransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
+            DelegateTransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
+                .amount(1)
                 .authority(&owner.to_account_info())
+                .delegate(&global_authority.to_account_info())
                 .payer(&owner.to_account_info())
                 .mint(&nft_mint.to_account_info())
                 .metadata(&mint_metadata.to_account_info())
-                .edition(Some(&token_mint_edition.to_account_info()))
-                .token(&token_account_info.to_account_info())
-                .token_owner(&owner.to_account_info())
                 .token_record(Some(&token_mint_record.to_account_info()))
-                .destination_token_record(Some(&dest_token_mint_record.to_account_info()))
-                .destination_owner(&global_authority.to_account_info())
-                .destination_token(&dest_token_account_info.to_account_info())
+                .token(&token_account_info.to_account_info())
                 .amount(1)
                 .authorization_rules(Some(&auth_rules.to_account_info()))
                 .sysvar_instructions(&sysvar_instructions.to_account_info())
                 .authorization_rules_program(Some(&auth_rules_program.to_account_info()))
-                .spl_ata_program(&associated_token_program.to_account_info())
-                .spl_token_program(&token_program.to_account_info())
                 .system_program(&system_program.to_account_info())
                 .invoke_signed(signer)?;
+            // TransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
+            //     .authority(&owner.to_account_info())
+            //     .payer(&owner.to_account_info())
+            //     .mint(&nft_mint.to_account_info())
+            //     .metadata(&mint_metadata.to_account_info())
+            //     .edition(Some(&token_mint_edition.to_account_info()))
+            //     .token(&token_account_info.to_account_info())
+            //     .token_owner(&owner.to_account_info())
+            //     .token_record(Some(&token_mint_record.to_account_info()))
+            //     .destination_token_record(Some(&dest_token_mint_record.to_account_info()))
+            //     .destination_owner(&global_authority.to_account_info())
+            //     .destination_token(&dest_token_account_info.to_account_info())
+            //     .amount(1)
+            //     .authorization_rules(Some(&auth_rules.to_account_info()))
+            //     .sysvar_instructions(&sysvar_instructions.to_account_info())
+            //     .authorization_rules_program(Some(&auth_rules_program.to_account_info()))
+            //     .spl_ata_program(&associated_token_program.to_account_info())
+            //     .spl_token_program(&token_program.to_account_info())
+            //     .system_program(&system_program.to_account_info())
+            //     .invoke_signed(signer)?;
             // let cpi_accounts = Transfer {
             //     from: token_account_info.to_account_info().clone(),
             //     to: dest_token_account_info.to_account_info().clone(),
