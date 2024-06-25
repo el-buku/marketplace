@@ -13,9 +13,6 @@ export const ESCROW_VAULT_SEED = 'escrow-vault';
 
 export const MARKETPLACE_PROGRAM_ID = new PublicKey('HgSg66orhTZ1KVSfDAfMKLvYb62ZHGPse9wXRC4BtXmC');
 
-export const ABB_TOKEN_MINT = new PublicKey('8EoML7gaBJsgJtepm25wq3GuUCqLYHBoqd3HP1JxtyBx');
-export const ABB_TOKEN_DECIMAL = 6;
-
 export interface GlobalPool {
   // 8 + 368
   superAdmin: PublicKey; // 32
