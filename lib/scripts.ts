@@ -2218,12 +2218,12 @@ export const createCancelAuctionPnftTx = async (
   const nftEdition = await getMasterEdition(mint);
   console.log('nftEdition:', nftEdition);
 
-  const tokenMintRecord = findTokenRecordPda(new anchor.web3.PublicKey(mint), destNftTokenAccount);
-  const userAccountExisted = await connection.getAccountInfo(new anchor.web3.PublicKey(destNftTokenAccount));
+  const tokenMintRecord = findTokenRecordPda(new anchor.web3.PublicKey(mint), destinationAccounts[0]);
+  const userAccountExisted = await connection.getAccountInfo(new anchor.web3.PublicKey(destinationAccounts[0]));
   console.log('tokenMintRecord: ', tokenMintRecord.toBase58());
 
-  const destTokenMintRecord = findTokenRecordPda(new anchor.web3.PublicKey(mint), destinationAccounts[0]);
-  const accountExisted = await connection.getAccountInfo(new anchor.web3.PublicKey(destinationAccounts[0]));
+  const destTokenMintRecord = findTokenRecordPda(new anchor.web3.PublicKey(mint), destNftTokenAccount);
+  const accountExisted = await connection.getAccountInfo(new anchor.web3.PublicKey(destNftTokenAccount));
   console.log('destTokenMintRecord: ', destTokenMintRecord.toBase58());
   console.log('accountExisted: ', accountExisted);
   console.log('instructions: ', instructions);

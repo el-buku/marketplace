@@ -15,7 +15,7 @@ use account::*;
 use constants::*;
 use error::*;
 
-declare_id!("Gaprzf3E59Es31MGcRDychJu1TY55hYo9zS7B1JMGnPS");
+declare_id!("D8MwjwdpEEPN1MbEQJRn2hgzZAFtXDV5h7pYHREQeMrU");
 
 #[program]
 pub mod mugs_marketplace {
@@ -1897,6 +1897,25 @@ pub mod mugs_marketplace {
                 token_account_info.amount == 1,
                 MarketplaceError::NFTIsNotInUserATA
             );
+            if mint_metadata.owner != ctx.accounts.token_metadata_program.key {
+                msg!("Metadata Owner Err: {:?}", mint_metadata.owner);
+            }
+            if nft_mint.owner != ctx.accounts.token_program.key {
+                msg!("NFT Mint Owner Err: {:?}", nft_mint.owner);
+            }
+            if &dest_token_account_info.owner != ctx.accounts.token_program.key {
+                msg!("Dest Token Owner Err: {:?}", dest_token_account_info.owner);
+            }
+
+            if dest_token_mint_record.owner != ctx.accounts.token_metadata_program.key {
+                msg!(
+                    "Dest Token Mint Record Owner Err: {:?}",
+                    dest_token_mint_record.owner
+                );
+            }
+            if auth_rules.owner != ctx.accounts.auth_rules_program.key {
+                msg!("Auth Rules Owner Err: {:?}", auth_rules.owner);
+            }
             TransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
                 .authority(&owner.to_account_info())
                 .payer(&owner.to_account_info())
@@ -2329,7 +2348,6 @@ pub mod mugs_marketplace {
         creator_user_pool.traded_volume += auction_data_info.highest_bid;
 
         let token_program = &mut &ctx.accounts.token_program;
-        let token_account_info = &mut &ctx.accounts.user_token_account;
         let dest_token_account_info = &mut &ctx.accounts.dest_nft_token_account;
         let seeds = &[ESCROW_VAULT_SEED.as_bytes(), &[escrow_bump]];
         let signer = &[&seeds[..]];
@@ -2357,7 +2375,7 @@ pub mod mugs_marketplace {
         let fee_amount: u64 =
             auction_data_info.highest_bid * global_authority.market_fee_sol / PERMYRIAD;
         let total_fee_amount: u64 = total_share_fee + fee_amount;
-
+        msg!("ix1");
         invoke_signed(
             &system_instruction::transfer(
                 ctx.accounts.escrow_vault.key,
@@ -2365,8 +2383,8 @@ pub mod mugs_marketplace {
                 auction_data_info.highest_bid - total_fee_amount,
             ),
             &[
-                ctx.accounts.creator.to_account_info().clone(),
                 ctx.accounts.escrow_vault.to_account_info().clone(),
+                ctx.accounts.creator.to_account_info().clone(),
                 ctx.accounts.system_program.to_account_info().clone(),
             ],
             signer,
@@ -2375,6 +2393,7 @@ pub mod mugs_marketplace {
         let mut i = 0;
         // This is not expensive cuz the max count is 8
         for team_account in remaining_accounts {
+            msg!("ix:{}", i);
             if i < global_authority.team_count {
                 // Assert Provided Remaining Account is Treasury
                 require!(
@@ -2383,6 +2402,7 @@ pub mod mugs_marketplace {
                         .eq(&global_authority.team_treasury[i as usize]),
                     MarketplaceError::TeamTreasuryAddressMismatch
                 );
+                msg!("ix2.1exec");
                 invoke_signed(
                     &system_instruction::transfer(
                         ctx.accounts.escrow_vault.key,
@@ -2400,6 +2420,7 @@ pub mod mugs_marketplace {
                 for creator in creators {
                     if creator.address == team_account.key() && creator.share != 0 {
                         let share_amount: u64 = total_share_fee * (creator.share as u64) / 100;
+                        msg!("ix2.2exec");
                         invoke_signed(
                             &system_instruction::transfer(
                                 ctx.accounts.escrow_vault.key,
@@ -2433,7 +2454,7 @@ pub mod mugs_marketplace {
         let associated_token_program = &ctx.accounts.associated_token_program;
         let auth_rules_program = &ctx.accounts.auth_rules_program;
         let auth_rules = &ctx.accounts.auth_rules;
-
+        msg!("ix3");
         TransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
             .authority(&global_authority.to_account_info())
             .payer(&owner.to_account_info())
@@ -2454,7 +2475,7 @@ pub mod mugs_marketplace {
             .spl_token_program(&token_program.to_account_info())
             .system_program(&system_program.to_account_info())
             .invoke_signed(signer)?;
-
+        msg!("ix4");
         invoke_signed(
             &close_account(
                 token_program.key,
@@ -2687,6 +2708,26 @@ pub mod mugs_marketplace {
         let auth_rules = &ctx.accounts.auth_rules;
 
         if sell_data_info.active == 0 {
+            if mint_metadata.owner != ctx.accounts.token_metadata_program.key {
+                msg!("Metadata Owner Err: {:?}", mint_metadata.owner);
+            }
+            if nft_mint.owner != ctx.accounts.token_program.key {
+                msg!("NFT Mint Owner Err: {:?}", nft_mint.owner);
+            }
+            if &dest_token_account_info.owner != ctx.accounts.token_program.key {
+                msg!("Dest Token Owner Err: {:?}", dest_token_account_info.owner);
+            }
+
+            if dest_token_mint_record.owner != ctx.accounts.token_metadata_program.key {
+                msg!(
+                    "Dest Token Mint Record Owner Err: {:?}",
+                    dest_token_mint_record.owner
+                );
+            }
+            if auth_rules.owner != ctx.accounts.auth_rules_program.key {
+                msg!("Auth Rules Owner Err: {:?}", auth_rules.owner);
+            }
+
             TransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
                 .authority(&global_authority.to_account_info())
                 .payer(&owner.to_account_info())
