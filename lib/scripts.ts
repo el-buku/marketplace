@@ -2065,3 +2065,81 @@ export const createCancelAuctionTx = async (
 
   return tx;
 };
+
+export const createCancelAuctionPnftTx = async (
+  mint: PublicKey,
+  userAddress: PublicKey,
+  program: anchor.Program,
+  connection: Connection,
+) => {
+  const [globalAuthority, bump] = await PublicKey.findProgramAddress(
+    [Buffer.from(GLOBAL_AUTHORITY_SEED)],
+    MARKETPLACE_PROGRAM_ID,
+  );
+
+  const [nftData, nft_bump] = await PublicKey.findProgramAddress(
+    [Buffer.from(AUCTION_DATA_SEED), mint.toBuffer()],
+    MARKETPLACE_PROGRAM_ID,
+  );
+
+  const [sellData, _] = await PublicKey.findProgramAddress(
+    [Buffer.from(SELL_DATA_SEED), mint.toBuffer()],
+    MARKETPLACE_PROGRAM_ID,
+  );
+
+  let { instructions, destinationAccounts } = await getATokenAccountsNeedCreate(connection, userAddress, userAddress, [
+    mint,
+  ]);
+
+  let destNftTokenAccount = await getAssociatedTokenAccount(globalAuthority, mint);
+
+  console.log('User NFT Account = ', destinationAccounts[0].toBase58());
+  const nftEdition = await getMasterEdition(mint);
+  console.log('nftEdition:', nftEdition);
+
+  const tokenMintRecord = findTokenRecordPda(new anchor.web3.PublicKey(mint), destNftTokenAccount);
+  const userAccountExisted = await connection.getAccountInfo(new anchor.web3.PublicKey(destNftTokenAccount));
+  console.log('tokenMintRecord: ', tokenMintRecord.toBase58());
+
+  const destTokenMintRecord = findTokenRecordPda(new anchor.web3.PublicKey(mint), destinationAccounts[0]);
+  const accountExisted = await connection.getAccountInfo(new anchor.web3.PublicKey(destinationAccounts[0]));
+  console.log('destTokenMintRecord: ', destTokenMintRecord.toBase58());
+  console.log('accountExisted: ', accountExisted);
+  console.log('instructions: ', instructions);
+
+  const metadata = await getMetadata(mint);
+  console.log('Metadata=', metadata.toBase58());
+  let tx = new Transaction();
+
+  if (instructions.length > 0) instructions.map((ix) => tx.add(ix));
+
+  console.log('==> canceling Auction', mint.toBase58());
+  tx.add(
+    program.instruction.cancelAuctionPnft(bump, nft_bump, {
+      accounts: {
+        creator: userAddress,
+        globalAuthority,
+        auctionDataInfo: nftData,
+        userTokenAccount: destinationAccounts[0],
+        destNftTokenAccount,
+        nftMint: mint,
+        mintMetadata: metadata,
+        tokenMintEdition: nftEdition,
+        tokenMintRecord: tokenMintRecord,
+        destTokenMintRecord: destTokenMintRecord,
+        systemProgram: SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        tokenMetadataProgram: METAPLEX,
+        authRules: MPL_DEFAULT_RULE_SET,
+        sysvarInstructions: SYSVAR_INSTRUCTIONS_PUBKEY,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        authRulesProgram: TOKEN_AUTH_RULES_ID,
+        sellDataInfo: sellData,
+      },
+      instructions: [],
+      signers: [],
+    }),
+  );
+
+  return tx;
+};

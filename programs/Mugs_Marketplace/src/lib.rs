@@ -2382,6 +2382,131 @@ pub mod mugs_marketplace {
 
         Ok(())
     }
+
+    pub fn cancel_auction_pnft(
+        ctx: Context<CancelAuctionPnft>,
+        global_bump: u8,
+        _auction_bump: u8,
+    ) -> Result<()> {
+        let auction_data_info = &mut ctx.accounts.auction_data_info;
+        let sell_data_info = &mut ctx.accounts.sell_data_info;
+
+        msg!("Mint: {:?}", auction_data_info.mint);
+
+        let timestamp = Clock::get()?.unix_timestamp;
+        msg!("Cancel Date: {}", timestamp);
+        // Assert NFT Pubkey with Auction Data PDA Mint
+        require!(
+            ctx.accounts.nft_mint.key().eq(&auction_data_info.mint),
+            MarketplaceError::InvalidNFTDataAcount
+        );
+        // Assert Auction End Date is passed
+        require!(
+            auction_data_info.get_end_date() <= timestamp,
+            MarketplaceError::NotEndedAuction
+        );
+        // Assert Already Ended Or Not Started Auction
+        require!(
+            auction_data_info.status == 1 || auction_data_info.status == 3,
+            MarketplaceError::NotListedNFT
+        );
+        // Assert Auction Has No Bidder
+        require!(
+            Pubkey::default().eq(&auction_data_info.last_bidder),
+            MarketplaceError::AuctionHasBid
+        );
+        // Assert Creator Pubkey is same with the Auction Data Creator
+        require!(
+            ctx.accounts.creator.key().eq(&auction_data_info.creator),
+            MarketplaceError::CreatorAccountMismatch
+        );
+
+        // Assert NFT Pubkey with Sell Data PDA Mint
+        require!(
+            ctx.accounts.nft_mint.key().eq(&sell_data_info.mint),
+            MarketplaceError::InvalidNFTDataAcount
+        );
+        if sell_data_info.active == 1 {
+            // Assert NFT seller is payer
+            require!(
+                ctx.accounts.creator.key().eq(&sell_data_info.seller),
+                MarketplaceError::SellerMismatch
+            );
+        }
+
+        auction_data_info.status = 0;
+
+        let dest_token_account_info = &mut &ctx.accounts.dest_nft_token_account;
+        let token_program = &mut &ctx.accounts.token_program;
+        let seeds: &[&[u8]; 2] = &[GLOBAL_AUTHORITY_SEED.as_bytes(), &[global_bump]];
+        let signer = &[&seeds[..]];
+
+        // Get Collection address from Metadata
+        let mint_metadata: &AccountInfo = &ctx.accounts.mint_metadata;
+        msg!("Metadata Account: {:?}", ctx.accounts.mint_metadata.key());
+        let (metadata, _) = Metadata::find_pda(&ctx.accounts.nft_mint.key());
+
+        require!(
+            metadata == mint_metadata.key(),
+            MarketplaceError::InvaliedMetadata
+        );
+
+        let global_authority = &ctx.accounts.global_authority;
+        let owner = &ctx.accounts.creator;
+        let token_account_info = &ctx.accounts.user_token_account;
+        let nft_mint = &ctx.accounts.nft_mint;
+
+        let token_mint_edition = &ctx.accounts.token_mint_edition;
+        let token_mint_record = &ctx.accounts.token_mint_record;
+        let dest_token_mint_record = &ctx.accounts.dest_token_mint_record;
+        let system_program = &ctx.accounts.system_program;
+        let sysvar_instructions = &ctx.accounts.sysvar_instructions;
+        let associated_token_program = &ctx.accounts.associated_token_program;
+        let auth_rules_program = &ctx.accounts.auth_rules_program;
+        let auth_rules = &ctx.accounts.auth_rules;
+
+        if sell_data_info.active == 0 {
+            TransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
+                .authority(&global_authority.to_account_info())
+                .payer(&owner.to_account_info())
+                .mint(&nft_mint.to_account_info())
+                .metadata(&mint_metadata.to_account_info())
+                .edition(Some(&token_mint_edition.to_account_info()))
+                .destination_token(&token_account_info.to_account_info())
+                .destination_owner(&owner.to_account_info())
+                .destination_token_record(Some(&token_mint_record.to_account_info()))
+                .token_record(Some(&dest_token_mint_record.to_account_info()))
+                .token_owner(&global_authority.to_account_info())
+                .token(&dest_token_account_info.to_account_info())
+                .amount(1)
+                .authorization_rules(Some(&auth_rules.to_account_info()))
+                .sysvar_instructions(&sysvar_instructions.to_account_info())
+                .authorization_rules_program(Some(&auth_rules_program.to_account_info()))
+                .spl_ata_program(&associated_token_program.to_account_info())
+                .spl_token_program(&token_program.to_account_info())
+                .system_program(&system_program.to_account_info())
+                .invoke_signed(signer)?;
+
+            invoke_signed(
+                &close_account(
+                    token_program.key,
+                    &dest_token_account_info.key(),
+                    ctx.accounts.creator.key,
+                    &ctx.accounts.global_authority.key(),
+                    &[],
+                )?,
+                &[
+                    token_program.clone().to_account_info(),
+                    dest_token_account_info.to_account_info().clone(),
+                    ctx.accounts.creator.to_account_info().clone(),
+                    ctx.accounts.global_authority.to_account_info().clone(),
+                ],
+                signer,
+            )?;
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -3645,7 +3770,6 @@ pub struct UpdateReserve<'info> {
     /// CHECK: This is not dangerous because we don't read or write from this account
     pub nft_mint: AccountInfo<'info>,
 }
-
 #[derive(Accounts)]
 #[instruction(bump: u8)]
 pub struct CancelAuction<'info> {
@@ -3685,6 +3809,87 @@ pub struct CancelAuction<'info> {
     pub nft_mint: AccountInfo<'info>,
 
     pub token_program: Program<'info, Token>,
+
+    #[account(
+        mut,
+        seeds = [SELL_DATA_SEED.as_ref(), nft_mint.key().to_bytes().as_ref()],
+        bump,
+    )]
+    pub sell_data_info: Account<'info, SellData>,
+}
+
+#[derive(Accounts)]
+#[instruction(bump: u8)]
+pub struct CancelAuctionPnft<'info> {
+    #[account(mut)]
+    pub creator: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [GLOBAL_AUTHORITY_SEED.as_ref()],
+        bump,
+    )]
+    pub global_authority: Box<Account<'info, GlobalPool>>,
+
+    #[account(
+        mut,
+        seeds = [AUCTION_DATA_SEED.as_ref(), nft_mint.key().to_bytes().as_ref()],
+        bump,
+    )]
+    pub auction_data_info: Box<Account<'info, AuctionData>>,
+
+    #[account(
+        mut,
+        constraint = user_token_account.mint == nft_mint.key(),
+        constraint = user_token_account.owner == *creator.key,
+    )]
+    pub user_token_account: Box<Account<'info, TokenAccount>>,
+
+    #[account(
+        mut,
+        constraint = dest_nft_token_account.mint == nft_mint.key(),
+        constraint = dest_nft_token_account.owner == global_authority.key(),
+        constraint = dest_nft_token_account.amount == 1,
+    )]
+    pub dest_nft_token_account: Box<Account<'info, TokenAccount>>,
+
+    /// CHECK: This is not dangerous because we don't read or write from this account
+    pub nft_mint: AccountInfo<'info>,
+    /// the mint metadata
+    #[account(
+            mut,
+            constraint = mint_metadata.owner == &mpl_token_metadata::ID
+        )]
+    /// CHECK: This is not dangerous because we don't read or write from this account
+    pub mint_metadata: AccountInfo<'info>,
+    pub token_program: Program<'info, Token>,
+
+    /// CHECK instruction will fail if wrong edition is supplied
+    pub token_mint_edition: AccountInfo<'info>,
+
+    /// CHECK instruction will fail if wrong record is supplied
+    #[account(mut)]
+    pub token_mint_record: AccountInfo<'info>,
+
+    /// CHECK instruction will fail if wrong record is supplied
+    #[account(mut)]
+    pub dest_token_mint_record: AccountInfo<'info>,
+
+    /// CHECK instruction will fail if wrong rules are supplied
+    pub auth_rules: UncheckedAccount<'info>,
+    /// CHECK instruction will fail if wrong sysvar ixns are supplied
+    pub sysvar_instructions: AccountInfo<'info>,
+
+    /// CHECK: this account is safe
+    pub associated_token_program: Program<'info, associated_token::AssociatedToken>,
+
+    /// CHECK intstruction will fail if wrong program is supplied
+    pub auth_rules_program: AccountInfo<'info>,
+    pub system_program: Program<'info, System>,
+
+    /// CHECK: This is not dangerous because we don't read or write from this account
+    #[account(constraint = token_metadata_program.key == &mpl_token_metadata::ID)]
+    pub token_metadata_program: AccountInfo<'info>,
 
     #[account(
         mut,

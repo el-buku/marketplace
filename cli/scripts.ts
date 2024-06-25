@@ -760,6 +760,25 @@ export const cancelAuction = async (mint: PublicKey) => {
   await solConnection.confirmTransaction(txId, 'confirmed');
   console.log('Your transaction signature', txId);
 };
+export const cancelAuctionPnft = async (mint: PublicKey) => {
+  console.log(mint.toBase58());
+
+  if (!(await isInitializedUser(payer.publicKey, solConnection))) {
+    console.log('User PDA is not Initialized. Should Init User PDA for first usage');
+    await initUserPool();
+  }
+
+  const tx = await createCancelAuctionPnftTx(mint, payer.publicKey, program, solConnection);
+  const { blockhash } = await solConnection.getRecentBlockhash('confirmed');
+  tx.feePayer = payer.publicKey;
+  tx.recentBlockhash = blockhash;
+  payer.signTransaction(tx);
+  const simulatieTx = await solConnection.simulateTransaction(tx);
+  console.log('tx =====>', simulatieTx);
+  let txId = await solConnection.sendTransaction(tx, [(payer as NodeWallet).payer]);
+  await solConnection.confirmTransaction(txId, 'confirmed');
+  console.log('Your transaction signature', txId);
+};
 
 export const getNFTPoolInfo = async (mint: PublicKey) => {
   const nftData: SellData = await getNFTPoolState(mint, program);
