@@ -2125,7 +2125,7 @@ export type MugsMarketplace = {
     },
   ];
   metadata: {
-    address: 'HgSg66orhTZ1KVSfDAfMKLvYb62ZHGPse9wXRC4BtXmC';
+    address: 'Gaprzf3E59Es31MGcRDychJu1TY55hYo9zS7B1JMGnPS';
   };
 };
 
@@ -4256,6 +4256,6 @@ export const IDL: MugsMarketplace = {
     },
   ],
   metadata: {
-    address: 'HgSg66orhTZ1KVSfDAfMKLvYb62ZHGPse9wXRC4BtXmC',
+    address: 'Gaprzf3E59Es31MGcRDychJu1TY55hYo9zS7B1JMGnPS',
   },
 };
