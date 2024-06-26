@@ -1145,12 +1145,8 @@ export const createPurchasePNftTx = async (
     MARKETPLACE_PROGRAM_ID,
   );
 
-  let { destinationAccounts } = await getATokenAccountsNeedCreate(connection, userAddress, globalAuthority, [mint]);
-
-  console.log('Dest NFT Account = ', destinationAccounts[0].toBase58());
   let sellInfo = await getNFTPoolState(mint, program);
   let seller = sellInfo.seller;
-
   const [sellerUserPool, seller_bump] = await PublicKey.findProgramAddress(
     [Buffer.from(USER_DATA_SEED), seller.toBuffer()],
     MARKETPLACE_PROGRAM_ID,
@@ -1158,12 +1154,17 @@ export const createPurchasePNftTx = async (
 
   console.log('Seller = ', seller.toBase58());
 
+  // let { destinationAccounts } = await getATokenAccountsNeedCreate(connection, userAddress, globalAuthority, [mint]);
+  let destNftTokenAccount = await getAssociatedTokenAccount(seller, mint);
+
+  console.log('Dest NFT Account = ', destNftTokenAccount.toBase58());
+
   const nftEdition = await getMasterEdition(mint);
   console.log('nftEdition:', nftEdition);
 
   const tokenMintRecord = findTokenRecordPda(new anchor.web3.PublicKey(mint), userNftTokenAccount);
 
-  const destTokenMintRecord = findTokenRecordPda(new anchor.web3.PublicKey(mint), destinationAccounts[0]);
+  const destTokenMintRecord = findTokenRecordPda(new anchor.web3.PublicKey(mint), destNftTokenAccount);
   const mintMetadata = await getMetadata(mint);
   console.log('Metadata=', mintMetadata.toBase58());
 
@@ -1206,10 +1207,11 @@ export const createPurchasePNftTx = async (
         buyerUserPool,
         sellDataInfo: nftData,
         userNftTokenAccount,
-        destNftTokenAccount: destinationAccounts[0],
+        destNftTokenAccount: destNftTokenAccount,
         nftMint: mint,
         tokenMint: mint,
         seller,
+        // creator,
         sellerUserPool,
         mintMetadata,
         tokenMintEdition: nftEdition,
@@ -1509,7 +1511,7 @@ export const createAcceptOfferPNftTx = async (
 
   let ret = await getATokenAccountsNeedCreate(connection, seller, buyer, [mint]);
 
-  let destNftTokenAccount = await getAssociatedTokenAccount(globalAuthority, mint);
+  let destNftTokenAccount = await getAssociatedTokenAccount(seller, mint);
 
   const nftEdition = await getMasterEdition(mint);
   console.log('nftEdition:', nftEdition);
@@ -2009,12 +2011,13 @@ export const createClaimAuctionPnftTx = async (
 
   let tx = new Transaction();
   let userTokenAccount = ret.destinationAccounts[0];
-  let destNftTokenAccount = await getAssociatedTokenAccount(globalAuthority, mint);
   console.log('Bidder NFT Account = ', userTokenAccount.toBase58());
 
   let auctionInfo = await getAuctionDataState(mint, program);
   let creator = auctionInfo.creator;
   if (ret.instructions.length > 0) ret.instructions.map((ix) => tx.add(ix));
+
+  let destNftTokenAccount = await getAssociatedTokenAccount(creator, mint);
 
   const [userPool, user_bump] = await PublicKey.findProgramAddress(
     [Buffer.from(USER_DATA_SEED), userAddress.toBuffer()],

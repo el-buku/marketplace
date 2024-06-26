@@ -38,6 +38,7 @@ import {
   createAuctionPNft,
   cancelAuctionPnft,
   claimAuctionPnft,
+  acceptOfferPNft,
 } from './scripts';
 
 dotenv.config({ path: __dirname + '/../.env' });
@@ -369,7 +370,28 @@ programCommand('accept_offer')
 
     await acceptOffer(new PublicKey(address), new PublicKey(buyer));
   });
+programCommand('accept_offer_pnft')
+  .option('-a, --address <string>', 'nft mint pubkey')
+  .option('-b, --buyer <string>', 'buyer address')
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  .action(async (directory, cmd) => {
+    const { env, address, buyer } = cmd.opts();
 
+    console.log('Solana config: ', env);
+    await setClusterConfig(env);
+
+    if (address === undefined) {
+      console.log('Error Mint input');
+      return;
+    }
+
+    if (buyer === undefined) {
+      console.log('Error Buyer input');
+      return;
+    }
+
+    await acceptOfferPNft(new PublicKey(address), new PublicKey(buyer));
+  });
 programCommand('create_auction')
   .option('-a, --address <string>', 'nft mint pubkey')
   .option('-p, --start_price <number>', 'start price')

@@ -387,6 +387,8 @@ export const pNftDelist = async (mint: PublicKey) => {
   tx.feePayer = payer.publicKey;
   tx.recentBlockhash = blockhash;
   payer.signTransaction(tx);
+  const simulatieTx = await solConnection.simulateTransaction(tx);
+  console.log('tx =====>', simulatieTx);
   let txId = await solConnection.sendTransaction(tx, [(payer as NodeWallet).payer]);
   await solConnection.confirmTransaction(txId, 'confirmed');
   console.log('Your transaction signature', txId);
@@ -457,7 +459,8 @@ export const purchasePNft = async (mint: PublicKey) => {
   tx.feePayer = payer.publicKey;
   tx.recentBlockhash = blockhash;
   payer.signTransaction(tx);
-
+  let simulatieTx = await solConnection.simulateTransaction(tx);
+  console.log('tx =====>', simulatieTx);
   let txId = await solConnection.sendTransaction(tx, [(payer as NodeWallet).payer]);
   await solConnection.confirmTransaction(txId, 'confirmed');
   console.log('Your transaction signature', txId);
@@ -572,6 +575,8 @@ export const acceptOfferPNft = async (mint: PublicKey, buyer: PublicKey) => {
   tx.feePayer = payer.publicKey;
   tx.recentBlockhash = blockhash;
   payer.signTransaction(tx);
+  let simulatieTx = await solConnection.simulateTransaction(tx);
+  console.log('tx =====>', simulatieTx);
   let txId = await solConnection.sendTransaction(tx, [(payer as NodeWallet).payer]);
   await solConnection.confirmTransaction(txId, 'confirmed');
   console.log('Your transaction signature', txId);

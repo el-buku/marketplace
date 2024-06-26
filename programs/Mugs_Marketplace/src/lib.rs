@@ -15,7 +15,7 @@ use account::*;
 use constants::*;
 use error::*;
 
-declare_id!("B3Tyy54DYevgJH8WUymqdMQ6QvDSnp77fqidJy6Agk4J");
+declare_id!("8UgKyW3bGd7skcT2Xz76tTTSjM1rhYCMU5FXEZd8qCjh");
 
 #[program]
 pub mod mugs_marketplace {
@@ -690,6 +690,9 @@ pub mod mugs_marketplace {
                 msg!("Create token start");
 
                 DelegateTransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
+                    .master_edition(Some(&token_mint_edition.to_account_info()))
+                    .spl_token_program(Some(&token_program.to_account_info()))
+                    .system_program(&system_program.to_account_info())
                     .authority(&owner.to_account_info())
                     .delegate(&global_authority.to_account_info())
                     .payer(&owner.to_account_info())
@@ -706,11 +709,14 @@ pub mod mugs_marketplace {
                     .invoke_signed(signer)?;
                 msg!("Create token account end");
             } else {
+
+                // no longer needed with delegates
+
                 // Assert NFT is in escrow Account
-                require!(
-                    dest_token_account_info.amount == 1,
-                    MarketplaceError::NFTIsNotInEscrowATA
-                );
+                // require!(
+                //     dest_token_account_info.amount == 1,
+                //     MarketplaceError::NFTIsNotInEscrowATA
+                // );
             }
         }
 
@@ -782,7 +788,10 @@ pub mod mugs_marketplace {
             msg!("Create token start");
 
             DelegateTransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
-                .authority(&global_authority.to_account_info())
+                .master_edition(Some(&token_mint_edition.to_account_info()))
+                .spl_token_program(Some(&token_program.to_account_info()))
+                .system_program(&system_program.to_account_info())
+                .authority(&owner.to_account_info())
                 .delegate(&owner.to_account_info())
                 .payer(&owner.to_account_info())
                 .mint(&nft_mint.to_account_info())
@@ -888,7 +897,8 @@ pub mod mugs_marketplace {
         let associated_token_program = &ctx.accounts.associated_token_program;
         let auth_rules_program = &ctx.accounts.auth_rules_program;
         let auth_rules = &ctx.accounts.auth_rules;
-
+        let seller = &ctx.accounts.seller;
+        // let creator = &ctx.accounts.creator;
         // At least one treasury should exist to trade NFT
         require!(
             global_authority.team_count > 0,
@@ -982,7 +992,7 @@ pub mod mugs_marketplace {
             .destination_owner(&owner.to_account_info())
             .destination_token_record(Some(&token_mint_record.to_account_info()))
             .token_record(Some(&dest_token_mint_record.to_account_info()))
-            .token_owner(&global_authority.to_account_info())
+            .token_owner(&seller.to_account_info())
             .token(&dest_nft_token_account_info.to_account_info())
             .amount(1)
             .authorization_rules(Some(&auth_rules.to_account_info()))
@@ -1207,10 +1217,10 @@ pub mod mugs_marketplace {
         let dest_nft_token_account_info = &mut &ctx.accounts.dest_nft_token_account;
         let seeds = &[GLOBAL_AUTHORITY_SEED.as_bytes(), &[global_bump]];
         let signer = &[&seeds[..]];
-
+        let seller = &ctx.accounts.seller;
         TransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
             .authority(&global_authority.to_account_info())
-            .payer(&owner.to_account_info())
+            .payer(&seller.to_account_info())
             .mint(&nft_mint.to_account_info())
             .metadata(&mint_metadata.to_account_info())
             .edition(Some(&token_mint_edition.to_account_info()))
@@ -1218,7 +1228,7 @@ pub mod mugs_marketplace {
             .destination_owner(&owner.to_account_info())
             .destination_token_record(Some(&token_mint_record.to_account_info()))
             .token_record(Some(&dest_token_mint_record.to_account_info()))
-            .token_owner(&global_authority.to_account_info())
+            .token_owner(&seller.to_account_info())
             .token(&dest_nft_token_account_info.to_account_info())
             .amount(1)
             .authorization_rules(Some(&auth_rules.to_account_info()))
@@ -1413,6 +1423,7 @@ pub mod mugs_marketplace {
         let associated_token_program = &ctx.accounts.associated_token_program;
         let auth_rules_program = &ctx.accounts.auth_rules_program;
         let auth_rules = &ctx.accounts.auth_rules;
+        let creator = &ctx.accounts.creator;
         msg!("ix3");
         TransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
             .authority(&global_authority.to_account_info())
@@ -1424,7 +1435,7 @@ pub mod mugs_marketplace {
             .destination_owner(&owner.to_account_info())
             .destination_token_record(Some(&token_mint_record.to_account_info()))
             .token_record(Some(&dest_token_mint_record.to_account_info()))
-            .token_owner(&global_authority.to_account_info())
+            .token_owner(&creator.to_account_info())
             .token(&dest_token_account_info.to_account_info())
             .amount(1)
             .authorization_rules(Some(&auth_rules.to_account_info()))
@@ -1434,23 +1445,23 @@ pub mod mugs_marketplace {
             .spl_token_program(&token_program.to_account_info())
             .system_program(&system_program.to_account_info())
             .invoke_signed(signer)?;
-        msg!("ix4");
-        invoke_signed(
-            &close_account(
-                token_program.key,
-                &dest_token_account_info.key(),
-                ctx.accounts.bidder.key,
-                &ctx.accounts.global_authority.key(),
-                &[],
-            )?,
-            &[
-                token_program.clone().to_account_info(),
-                dest_token_account_info.to_account_info().clone(),
-                ctx.accounts.bidder.to_account_info().clone(),
-                ctx.accounts.global_authority.to_account_info().clone(),
-            ],
-            signer,
-        )?;
+        // msg!("ix4");
+        // invoke_signed(
+        //     &close_account(
+        //         token_program.key,
+        //         &dest_token_account_info.key(),
+        //         ctx.accounts.bidder.key,
+        //         &ctx.accounts.global_authority.key(),
+        //         &[],
+        //     )?,
+        //     &[
+        //         token_program.clone().to_account_info(),
+        //         dest_token_account_info.to_account_info().clone(),
+        //         ctx.accounts.bidder.to_account_info().clone(),
+        //         ctx.accounts.global_authority.to_account_info().clone(),
+        //     ],
+        //     signer,
+        // )?;
 
         Ok(())
     }
@@ -1508,7 +1519,7 @@ pub mod mugs_marketplace {
 
         auction_data_info.status = 0;
 
-        let dest_token_account_info = &mut &ctx.accounts.dest_nft_token_account;
+        // let dest_token_account_info = &mut &ctx.accounts.dest_nft_token_account;
         let token_program = &mut &ctx.accounts.token_program;
         let seeds: &[&[u8]; 2] = &[GLOBAL_AUTHORITY_SEED.as_bytes(), &[global_bump]];
         let signer = &[&seeds[..]];
@@ -1544,14 +1555,20 @@ pub mod mugs_marketplace {
             if nft_mint.owner != ctx.accounts.token_program.key {
                 msg!("NFT Mint Owner Err: {:?}", nft_mint.owner);
             }
-            if &dest_token_account_info.owner != ctx.accounts.token_program.key {
-                msg!("Dest Token Owner Err: {:?}", dest_token_account_info.owner);
-            }
+            // if token_account_info.owner != *ctx.accounts.token_program.key {
+            //     msg!("Token Owner Err: {:?}", dest_token_account_info.owner);
+            // }
 
-            if dest_token_mint_record.owner != ctx.accounts.token_metadata_program.key {
+            if token_mint_record.owner != ctx.accounts.token_metadata_program.key {
                 msg!(
-                    "Dest Token Mint Record Owner Err: {:?}",
+                    "Token Mint Record Owner Err: {:?}",
                     dest_token_mint_record.owner
+                );
+            }
+            if token_mint_edition.owner != ctx.accounts.token_metadata_program.key {
+                msg!(
+                    "Token Mint Edition Owner Err: {:?}",
+                    token_mint_edition.owner
                 );
             }
             if auth_rules.owner != ctx.accounts.auth_rules_program.key {
@@ -1559,7 +1576,10 @@ pub mod mugs_marketplace {
             }
 
             DelegateTransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
-                .authority(&global_authority.to_account_info())
+                .master_edition(Some(&token_mint_edition.to_account_info()))
+                .authority(&owner.to_account_info())
+                .system_program(&system_program.to_account_info())
+                .spl_token_program(Some(&token_program.to_account_info()))
                 .delegate(&owner.to_account_info())
                 .payer(&owner.to_account_info())
                 .mint(&nft_mint.to_account_info())
@@ -1573,22 +1593,22 @@ pub mod mugs_marketplace {
                 .system_program(&system_program.to_account_info())
                 .invoke_signed(signer)?;
 
-            invoke_signed(
-                &close_account(
-                    token_program.key,
-                    &dest_token_account_info.key(),
-                    ctx.accounts.creator.key,
-                    &ctx.accounts.global_authority.key(),
-                    &[],
-                )?,
-                &[
-                    token_program.clone().to_account_info(),
-                    dest_token_account_info.to_account_info().clone(),
-                    ctx.accounts.creator.to_account_info().clone(),
-                    ctx.accounts.global_authority.to_account_info().clone(),
-                ],
-                signer,
-            )?;
+            // invoke_signed(
+            //     &close_account(
+            //         token_program.key,
+            //         &dest_token_account_info.key(),
+            //         ctx.accounts.creator.key,
+            //         &ctx.accounts.global_authority.key(),
+            //         &[],
+            //     )?,
+            //     &[
+            //         token_program.clone().to_account_info(),
+            //         dest_token_account_info.to_account_info().clone(),
+            //         ctx.accounts.creator.to_account_info().clone(),
+            //         ctx.accounts.global_authority.to_account_info().clone(),
+            //     ],
+            //     signer,
+            // )?;
         }
 
         Ok(())
@@ -1679,7 +1699,7 @@ pub mod mugs_marketplace {
         }
 
         let token_account_info = &ctx.accounts.user_token_account;
-        let dest_token_account_info = &ctx.accounts.dest_nft_token_account;
+        // let dest_token_account_info = &ctx.accounts.dest_nft_token_account;
         let owner: &Signer = &ctx.accounts.owner;
         let nft_mint = &ctx.accounts.nft_mint;
         let global_authority = &ctx.accounts.global_authority;
@@ -1720,6 +1740,9 @@ pub mod mugs_marketplace {
             }
             DelegateTransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
                 .amount(1)
+                .master_edition(Some(&token_mint_edition.to_account_info()))
+                .spl_token_program(Some(&token_program.to_account_info()))
+                .system_program(&system_program.to_account_info())
                 .authority(&owner.to_account_info())
                 .delegate(&global_authority.to_account_info())
                 .payer(&owner.to_account_info())
@@ -1763,11 +1786,13 @@ pub mod mugs_marketplace {
             //     1,
             // )?;
         } else {
+            // Not needed since we moved to delegates
+
             // Assert NFT is in escrow Account
-            require!(
-                dest_token_account_info.amount == 1,
-                MarketplaceError::NFTIsNotInEscrowATA
-            );
+            // require!(
+            //     dest_token_account_info.amount == 1,
+            //     MarketplaceError::NFTIsNotInEscrowATA
+            // );
         }
 
         Ok(())
@@ -3090,14 +3115,15 @@ pub struct ListPNftForSale<'info> {
     )]
     pub user_token_account: Account<'info, TokenAccount>,
 
-    #[account(
-        init_if_needed,
-        associated_token::mint = nft_mint,
-        associated_token::authority = global_authority,
-        payer = owner,
-    )]
-    pub dest_nft_token_account: Account<'info, TokenAccount>,
-
+    // #[account(
+    //     init_if_needed,
+    //     associated_token::mint = nft_mint,
+    //     associated_token::authority = global_authority,
+    //     payer = owner,
+    // )]
+    // pub dest_nft_token_account: Account<'info, TokenAccount>,
+    /// CHECK: legacy pre delegates will be removed
+    pub dest_nft_token_account: AccountInfo<'info>,
     /// CHECK: This is not dangerous because we don't read or write from this account
     pub nft_mint: AccountInfo<'info>,
     /// the mint metadata
@@ -3219,14 +3245,15 @@ pub struct DelistPNft<'info> {
     )]
     pub user_token_account: Account<'info, TokenAccount>,
 
-    #[account(
-        mut,
-        constraint = dest_nft_token_account.mint == nft_mint.key(),
-        constraint = dest_nft_token_account.owner == global_authority.key(),
-        constraint = dest_nft_token_account.amount == 1,
-    )]
-    pub dest_nft_token_account: Account<'info, TokenAccount>,
-
+    // #[account(
+    //     mut,
+    //     constraint = dest_nft_token_account.mint == nft_mint.key(),
+    //     constraint = dest_nft_token_account.owner == global_authority.key(),
+    //     constraint = dest_nft_token_account.amount == 1,
+    // )]
+    // pub dest_nft_token_account: Account<'info, TokenAccount>,
+    /// CHECK: legacy pre delegates will be removed
+    pub dest_nft_token_account: AccountInfo<'info>,
     /// CHECK: This is not dangerous because we don't read or write from this account
     pub nft_mint: AccountInfo<'info>,
     /// the mint metadata
@@ -3393,6 +3420,12 @@ pub struct PurchasePNft<'info> {
     )]
     pub buyer_user_pool: Account<'info, UserData>,
 
+    // #[account(
+    //     mut,
+    //     constraint = auction_data_info.creator==creator.key(),
+    // )]
+    // /// CHECK: This is not dangerous because we don't read or write from this account
+    // pub creator: AccountInfo<'info>,
     #[account(
         mut,
         constraint = user_nft_token_account.mint == nft_mint.key(),
@@ -3403,7 +3436,7 @@ pub struct PurchasePNft<'info> {
     #[account(
         mut,
         constraint = dest_nft_token_account.mint == nft_mint.key(),
-        constraint = dest_nft_token_account.owner == global_authority.key(),
+        constraint = dest_nft_token_account.owner == sell_data_info.seller.key(),
         constraint = dest_nft_token_account.amount == 1,
     )]
     pub dest_nft_token_account: Box<Account<'info, TokenAccount>>,
@@ -3691,11 +3724,10 @@ pub struct AcceptOfferPNft<'info> {
     #[account(
         mut,
         constraint = dest_nft_token_account.mint == nft_mint.key(),
-        constraint = dest_nft_token_account.owner == global_authority.key(),
+        constraint = dest_nft_token_account.owner == seller.key(),
         constraint = dest_nft_token_account.amount == 1,
     )]
     pub dest_nft_token_account: Box<Account<'info, TokenAccount>>,
-
     #[account(
         mut,
         seeds = [ESCROW_VAULT_SEED.as_ref()],
@@ -3839,13 +3871,14 @@ pub struct CreateAuctionPNft<'info> {
     )]
     pub user_token_account: Account<'info, TokenAccount>,
 
-    #[account(
-        mut,
-        constraint = dest_nft_token_account.mint == nft_mint.key(),
-        constraint = dest_nft_token_account.owner == global_authority.key(),
-    )]
-    pub dest_nft_token_account: Account<'info, TokenAccount>,
-
+    // #[account(
+    //     mut,
+    //     constraint = dest_nft_token_account.mint == nft_mint.key(),
+    //     constraint = dest_nft_token_account.owner == global_authority.key(),
+    // )]
+    // pub dest_nft_token_account: Account<'info, TokenAccount>,
+    /// CHECK: legacy pre delegates will be removed
+    pub dest_nft_token_account: AccountInfo<'info>,
     /// CHECK: This is not dangerous because we don't read or write from this account
     pub nft_mint: AccountInfo<'info>,
     /// the mint metadata
@@ -4035,15 +4068,19 @@ pub struct ClaimAuctionPNft<'info> {
         constraint = user_token_account.owner == *bidder.key,
     )]
     pub user_token_account: Account<'info, TokenAccount>,
-
     #[account(
         mut,
         constraint = dest_nft_token_account.mint == nft_mint.key(),
-        constraint = dest_nft_token_account.owner == global_authority.key(),
+        constraint = dest_nft_token_account.owner == auction_data_info.creator.key(),
         constraint = dest_nft_token_account.amount == 1,
     )]
-    pub dest_nft_token_account: Account<'info, TokenAccount>,
-
+    pub dest_nft_token_account: Box<Account<'info, TokenAccount>>,
+    #[account(
+        mut,
+        constraint = auction_data_info.creator==creator.key(),
+    )]
+    /// CHECK: This is not dangerous because we don't read or write from this account
+    pub creator: AccountInfo<'info>,
     /// CHECK: This is not dangerous because we don't read or write from this account
     pub nft_mint: AccountInfo<'info>,
 
@@ -4062,10 +4099,6 @@ pub struct ClaimAuctionPNft<'info> {
         bump,
     )]
     pub bidder_user_pool: Box<Account<'info, UserData>>,
-
-    #[account(mut)]
-    /// CHECK: This is not dangerous because we don't read or write from this account
-    pub creator: SystemAccount<'info>,
 
     #[account(
         mut,
@@ -4202,14 +4235,15 @@ pub struct CancelAuctionPNft<'info> {
     )]
     pub user_token_account: Box<Account<'info, TokenAccount>>,
 
-    #[account(
-        mut,
-        constraint = dest_nft_token_account.mint == nft_mint.key(),
-        constraint = dest_nft_token_account.owner == global_authority.key(),
-        constraint = dest_nft_token_account.amount == 1,
-    )]
-    pub dest_nft_token_account: Box<Account<'info, TokenAccount>>,
-
+    // #[account(
+    //     mut,
+    //     constraint = dest_nft_token_account.mint == nft_mint.key(),
+    //     constraint = dest_nft_token_account.owner == global_authority.key(),
+    //     constraint = dest_nft_token_account.amount == 1,
+    // )]
+    // pub dest_nft_token_account: Box<Account<'info, TokenAccount>>,
+    /// CHECK: legacy pre delegates will be removed
+    pub dest_nft_token_account: Account<'info, TokenAccount>,
     /// CHECK: This is not dangerous because we don't read or write from this account
     pub nft_mint: AccountInfo<'info>,
     /// the mint metadata
