@@ -6,46 +6,54 @@ import {
   TransactionInstruction,
   Transaction,
   Keypair,
-} from "@solana/web3.js";
-import {
-  TOKEN_PROGRAM_ID,
-  ASSOCIATED_TOKEN_PROGRAM_ID,
-  Token,
-  MintLayout,
-} from "@solana/spl-token";
-import {
-  ESCROW_VAULT_SEED,
-  GLOBAL_AUTHORITY_SEED,
-  MARKETPLACE_PROGRAM_ID,
-  USER_DATA_SEED,
-} from "./types";
+  ComputeBudgetProgram,
+} from '@solana/web3.js';
+import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, Token, MintLayout } from '@solana/spl-token';
+import { ESCROW_VAULT_SEED, GLOBAL_AUTHORITY_SEED, MARKETPLACE_PROGRAM_ID, USER_DATA_SEED } from './types';
 
-export const METAPLEX = new PublicKey(
-  "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
-);
+export const METAPLEX = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 
-export const getOwnerOfNFT = async (
-  nftMintPk: PublicKey,
-  connection: Connection
-): Promise<PublicKey> => {
+export const addComputeBudgetIxs = (tx: Transaction) => {
+  const computeUnitPrice = 1;
+  const units = 400000;
+  const MICRO_LAMPORTS_PER_LAMPORT = 1_000_000;
+  const additionalFee = Math.ceil((computeUnitPrice * units) / MICRO_LAMPORTS_PER_LAMPORT);
+
+  const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
+    units,
+  });
+  const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+    microLamports: additionalFee,
+  });
+
+  tx.add(modifyComputeUnits).add(addPriorityFee);
+  return tx;
+};
+
+export const txWithComputeUnitsIxs = () => {
+  const tx = new Transaction();
+  return addComputeBudgetIxs(tx);
+};
+
+export const getOwnerOfNFT = async (nftMintPk: PublicKey, connection: Connection): Promise<PublicKey> => {
   let tokenAccountPK = await getNFTTokenAccount(nftMintPk, connection);
   let tokenAccountInfo = await connection.getAccountInfo(tokenAccountPK);
 
-  console.log("nftMintPk=", nftMintPk.toBase58());
-  console.log("tokenAccountInfo =", tokenAccountInfo);
+  console.log('nftMintPk=', nftMintPk.toBase58());
+  console.log('tokenAccountInfo =', tokenAccountInfo);
 
   if (tokenAccountInfo && tokenAccountInfo.data) {
     let ownerPubkey = new PublicKey(tokenAccountInfo.data.slice(32, 64));
-    console.log("ownerPubkey=", ownerPubkey.toBase58());
+    console.log('ownerPubkey=', ownerPubkey.toBase58());
     return ownerPubkey;
   }
-  return new PublicKey("");
+  return new PublicKey('');
 };
 
 export const getTokenAccount = async (
   mintPk: PublicKey,
   userPk: PublicKey,
-  connection: Connection
+  connection: Connection,
 ): Promise<PublicKey> => {
   let tokenAccount = await connection.getProgramAccounts(TOKEN_PROGRAM_ID, {
     filters: [
@@ -69,11 +77,8 @@ export const getTokenAccount = async (
   return tokenAccount[0].pubkey;
 };
 
-export const getNFTTokenAccount = async (
-  nftMintPk: PublicKey,
-  connection: Connection
-): Promise<PublicKey> => {
-  console.log("getNFTTokenAccount nftMintPk=", nftMintPk.toBase58());
+export const getNFTTokenAccount = async (nftMintPk: PublicKey, connection: Connection): Promise<PublicKey> => {
+  console.log('getNFTTokenAccount nftMintPk=', nftMintPk.toBase58());
   let tokenAccount = await connection.getProgramAccounts(TOKEN_PROGRAM_ID, {
     filters: [
       {
@@ -82,7 +87,7 @@ export const getNFTTokenAccount = async (
       {
         memcmp: {
           offset: 64,
-          bytes: "2",
+          bytes: '2',
         },
       },
       {
@@ -96,10 +101,7 @@ export const getNFTTokenAccount = async (
   return tokenAccount[0].pubkey;
 };
 
-export const getAssociatedTokenAccount = async (
-  ownerPubkey: PublicKey,
-  mintPk: PublicKey
-): Promise<PublicKey> => {
+export const getAssociatedTokenAccount = async (ownerPubkey: PublicKey, mintPk: PublicKey): Promise<PublicKey> => {
   let associatedTokenAccountPubkey = (
     await PublicKey.findProgramAddress(
       [
@@ -107,7 +109,7 @@ export const getAssociatedTokenAccount = async (
         TOKEN_PROGRAM_ID.toBuffer(),
         mintPk.toBuffer(), // mint address
       ],
-      ASSOCIATED_TOKEN_PROGRAM_ID
+      ASSOCIATED_TOKEN_PROGRAM_ID,
     )
   )[0];
   return associatedTokenAccountPubkey;
@@ -117,7 +119,7 @@ export const getATokenAccountsNeedCreate = async (
   connection: Connection,
   walletAddress: PublicKey,
   owner: PublicKey,
-  nfts: PublicKey[]
+  nfts: PublicKey[],
 ) => {
   let instructions = [],
     destinationAccounts: PublicKey[] = [];
@@ -125,12 +127,7 @@ export const getATokenAccountsNeedCreate = async (
     const destinationPubkey = await getAssociatedTokenAccount(owner, mint);
     const response = await connection.getAccountInfo(destinationPubkey);
     if (!response) {
-      const createATAIx = createAssociatedTokenAccountInstruction(
-        destinationPubkey,
-        walletAddress,
-        owner,
-        mint
-      );
+      const createATAIx = createAssociatedTokenAccountInstruction(destinationPubkey, walletAddress, owner, mint);
       instructions.push(createATAIx);
     }
     destinationAccounts.push(destinationPubkey);
@@ -145,7 +142,7 @@ export const createAssociatedTokenAccountInstruction = (
   associatedTokenAddress: PublicKey,
   payer: PublicKey,
   walletAddress: PublicKey,
-  splTokenMintAddress: PublicKey
+  splTokenMintAddress: PublicKey,
 ) => {
   const keys = [
     { pubkey: payer, isSigner: true, isWritable: true },
@@ -174,64 +171,39 @@ export const createAssociatedTokenAccountInstruction = (
 /** Get metaplex mint metadata account address */
 export const getMetadata = async (mint: PublicKey): Promise<PublicKey> => {
   return (
-    await PublicKey.findProgramAddress(
-      [Buffer.from("metadata"), METAPLEX.toBuffer(), mint.toBuffer()],
-      METAPLEX
-    )
+    await PublicKey.findProgramAddress([Buffer.from('metadata'), METAPLEX.toBuffer(), mint.toBuffer()], METAPLEX)
   )[0];
 };
 
 export const getMasterEdition = async (mint: PublicKey): Promise<PublicKey> => {
   return (
     await PublicKey.findProgramAddress(
-      [
-        Buffer.from("metadata"),
-        METAPLEX.toBuffer(),
-        mint.toBuffer(),
-        Buffer.from("edition"),
-      ],
-      METAPLEX
+      [Buffer.from('metadata'), METAPLEX.toBuffer(), mint.toBuffer(), Buffer.from('edition')],
+      METAPLEX,
     )
   )[0];
 };
 
-export function findTokenRecordPda(
-  mint: PublicKey,
-  token: PublicKey
-): PublicKey {
+export function findTokenRecordPda(mint: PublicKey, token: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
-    [
-      Buffer.from("metadata"),
-      METAPLEX.toBuffer(),
-      mint.toBuffer(),
-      Buffer.from("token_record"),
-      token.toBuffer(),
-    ],
-    METAPLEX
+    [Buffer.from('metadata'), METAPLEX.toBuffer(), mint.toBuffer(), Buffer.from('token_record'), token.toBuffer()],
+    METAPLEX,
   )[0];
 }
 
-export const airdropSOL = async (
-  address: PublicKey,
-  amount: number,
-  connection: Connection
-) => {
+export const airdropSOL = async (address: PublicKey, amount: number, connection: Connection) => {
   try {
     const txId = await connection.requestAirdrop(address, amount);
     await connection.confirmTransaction(txId);
   } catch (e) {
-    console.log("Aridrop Failure", address.toBase58(), amount);
+    console.log('Aridrop Failure', address.toBase58(), amount);
   }
 };
 
-export const createTokenMint = async (
-  connection: Connection,
-  payer: Keypair,
-  mint: Keypair
-) => {
+export const createTokenMint = async (connection: Connection, payer: Keypair, mint: Keypair) => {
   const ret = await connection.getAccountInfo(mint.publicKey);
   if (ret && ret.data) {
-    console.log("Token already in use", mint.publicKey.toBase58());
+    console.log('Token already in use', mint.publicKey.toBase58());
     return;
   }
   // Allocate memory for the account
@@ -244,27 +216,18 @@ export const createTokenMint = async (
       lamports: balanceNeeded,
       space: MintLayout.span,
       programId: TOKEN_PROGRAM_ID,
-    })
+    }),
   );
   transaction.add(
-    Token.createInitMintInstruction(
-      TOKEN_PROGRAM_ID,
-      mint.publicKey,
-      9,
-      payer.publicKey,
-      payer.publicKey
-    )
+    Token.createInitMintInstruction(TOKEN_PROGRAM_ID, mint.publicKey, 9, payer.publicKey, payer.publicKey),
   );
   const txId = await connection.sendTransaction(transaction, [payer, mint]);
   await connection.confirmTransaction(txId);
 
-  console.log("Tx Hash=", txId);
+  console.log('Tx Hash=', txId);
 };
 
-export const isExistAccount = async (
-  address: PublicKey,
-  connection: Connection
-) => {
+export const isExistAccount = async (address: PublicKey, connection: Connection) => {
   try {
     const res = await connection.getAccountInfo(address);
     if (res && res.data) return true;
@@ -273,10 +236,7 @@ export const isExistAccount = async (
   }
 };
 
-export const getTokenAccountBalance = async (
-  account: PublicKey,
-  connection: Connection
-) => {
+export const getTokenAccountBalance = async (account: PublicKey, connection: Connection) => {
   try {
     const res = await connection.getTokenAccountBalance(account);
     if (res && res.value) return res.value.uiAmount;
@@ -288,45 +248,33 @@ export const getTokenAccountBalance = async (
 };
 
 export const getEscrowBalance = async (connection: Connection) => {
-  const [escrowVault] = await PublicKey.findProgramAddress(
-    [Buffer.from(ESCROW_VAULT_SEED)],
-    MARKETPLACE_PROGRAM_ID
-  );
+  const [escrowVault] = await PublicKey.findProgramAddress([Buffer.from(ESCROW_VAULT_SEED)], MARKETPLACE_PROGRAM_ID);
 
   const res = await connection.getBalance(escrowVault);
 
-  console.log("Escrow:", escrowVault.toBase58());
+  console.log('Escrow:', escrowVault.toBase58());
 
   return {
     sol: res,
   };
 };
 
-export const getGlobalNFTBalance = async (
-  mint: PublicKey,
-  connection: Connection
-) => {
+export const getGlobalNFTBalance = async (mint: PublicKey, connection: Connection) => {
   const [globalAuthority, _] = await PublicKey.findProgramAddress(
     [Buffer.from(GLOBAL_AUTHORITY_SEED)],
-    MARKETPLACE_PROGRAM_ID
+    MARKETPLACE_PROGRAM_ID,
   );
 
-  const globalNFTAcount = await getAssociatedTokenAccount(
-    globalAuthority,
-    mint
-  );
-  console.log("GlobalNFTAccount:", globalNFTAcount.toBase58());
+  const globalNFTAcount = await getAssociatedTokenAccount(globalAuthority, mint);
+  console.log('GlobalNFTAccount:', globalNFTAcount.toBase58());
   return await getTokenAccountBalance(globalNFTAcount, connection);
 };
 
-export const isInitializedUser = async (
-  address: PublicKey,
-  connection: Connection
-) => {
+export const isInitializedUser = async (address: PublicKey, connection: Connection) => {
   const [userPool, _] = await PublicKey.findProgramAddress(
     [Buffer.from(USER_DATA_SEED), address.toBuffer()],
-    MARKETPLACE_PROGRAM_ID
+    MARKETPLACE_PROGRAM_ID,
   );
-  console.log("User Data PDA: ", userPool.toBase58());
+  console.log('User Data PDA: ', userPool.toBase58());
   return await isExistAccount(userPool, connection);
 };
