@@ -15,13 +15,14 @@ use account::*;
 use constants::*;
 use error::*;
 
-declare_id!("2YAdPERK6FMGKwaLLVtcyA51GSSCqpo87FSHw9oftafi");
+declare_id!("6XEhzyqqU5CSnG5kpVNATWo7gse1Gjh8RwyYWnCKLtFk");
 
 #[program]
 pub mod mugs_marketplace {
 
     use mpl_token_metadata::instructions::{
-        DelegateTransferV1, DelegateTransferV1CpiBuilder, TransferV1CpiBuilder,
+        DelegateLockedTransferV1CpiBuilder, DelegateTransferV1CpiBuilder, LockV1CpiBuilder,
+        RevokeLockedTransferV1CpiBuilder, TransferV1CpiBuilder,
     };
 
     use super::*;
@@ -689,14 +690,13 @@ pub mod mugs_marketplace {
             if expected_token_account == dest_token_account_info.key() {
                 msg!("Create token start");
 
-                DelegateTransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
+                DelegateLockedTransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
                     .master_edition(Some(&token_mint_edition.to_account_info()))
                     .spl_token_program(Some(&token_program.to_account_info()))
                     .system_program(&system_program.to_account_info())
                     .authority(&owner.to_account_info())
                     .delegate(&global_authority.to_account_info())
                     .payer(&owner.to_account_info())
-                    .delegate(&global_authority.to_account_info())
                     .mint(&nft_mint.to_account_info())
                     .metadata(&mint_metadata.to_account_info())
                     .token(&token_account_info.to_account_info())
@@ -706,7 +706,9 @@ pub mod mugs_marketplace {
                     .sysvar_instructions(&sysvar_instructions.to_account_info())
                     .authorization_rules_program(Some(&auth_rules_program.to_account_info()))
                     .system_program(&system_program.to_account_info())
+                    .locked_address(token_account_info.key())
                     .invoke_signed(signer)?;
+
                 msg!("Create token account end");
             } else {
 
@@ -787,18 +789,39 @@ pub mod mugs_marketplace {
         if auction_data_info.status != 3 {
             msg!("Create token start");
 
-            DelegateTransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
+            if mint_metadata.owner != ctx.accounts.token_metadata_program.key {
+                msg!("Metadata Owner Err: {:?}", mint_metadata.owner);
+            }
+            if nft_mint.owner != ctx.accounts.token_program.key {
+                msg!("NFT Mint Owner Err: {:?}", nft_mint.owner);
+            }
+            if token_account_info.owner != *ctx.accounts.token_program.key {
+                msg!("Token Owner Err: {:?}", token_account_info.owner);
+            }
+
+            if token_mint_record.owner != ctx.accounts.token_metadata_program.key {
+                msg!("Token Mint Record Owner Err: {:?}", token_mint_record.owner);
+            }
+            if token_mint_edition.owner != ctx.accounts.token_metadata_program.key {
+                msg!(
+                    "Token Mint Edition Owner Err: {:?}",
+                    token_mint_edition.owner
+                );
+            }
+            if auth_rules.owner != ctx.accounts.auth_rules_program.key {
+                msg!("Auth Rules O");
+            }
+            RevokeLockedTransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
                 .master_edition(Some(&token_mint_edition.to_account_info()))
                 .spl_token_program(Some(&token_program.to_account_info()))
                 .system_program(&system_program.to_account_info())
                 .authority(&owner.to_account_info())
-                .delegate(&owner.to_account_info())
+                .delegate(&global_authority.to_account_info())
                 .payer(&owner.to_account_info())
                 .mint(&nft_mint.to_account_info())
                 .metadata(&mint_metadata.to_account_info())
                 .token_record(Some(&token_mint_record.to_account_info()))
                 .token(&token_account_info.to_account_info())
-                .amount(1)
                 .authorization_rules(Some(&auth_rules.to_account_info()))
                 .sysvar_instructions(&sysvar_instructions.to_account_info())
                 .authorization_rules_program(Some(&auth_rules_program.to_account_info()))
