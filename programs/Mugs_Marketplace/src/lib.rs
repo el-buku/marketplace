@@ -1089,7 +1089,7 @@ pub mod mugs_marketplace {
         let buyer_user_pool = &mut ctx.accounts.buyer_user_pool;
         let seller_user_pool = &mut ctx.accounts.seller_user_pool;
 
-        let owner = &ctx.accounts.buyer;
+        let buyer = &ctx.accounts.buyer;
         let token_account_info = &ctx.accounts.user_nft_token_account;
         let nft_mint = &ctx.accounts.nft_mint;
 
@@ -1287,32 +1287,11 @@ pub mod mugs_marketplace {
         let seeds = &[GLOBAL_AUTHORITY_SEED.as_bytes(), &[global_bump]];
         let signer = &[&seeds[..]];
         let seller = &ctx.accounts.seller;
-        if mint_metadata.owner != ctx.accounts.token_metadata_program.key {
-            msg!("Metadata Owner Err: {:?}", mint_metadata.owner);
-        }
-        if nft_mint.owner != ctx.accounts.token_program.key {
-            msg!("NFT Mint Owner Err: {:?}", nft_mint.owner);
-        }
-        if token_account_info.owner != *ctx.accounts.token_program.key {
-            msg!("Token Owner Err: {:?}", token_account_info.owner);
-        }
 
-        if token_mint_record.owner != ctx.accounts.token_metadata_program.key {
-            msg!("Token Mint Record Owner Err: {:?}", token_mint_record.owner);
-        }
-        if token_mint_edition.owner != ctx.accounts.token_metadata_program.key {
-            msg!(
-                "Token Mint Edition Owner Err: {:?}",
-                token_mint_edition.owner
-            );
-        }
-        if auth_rules.owner != ctx.accounts.auth_rules_program.key {
-            msg!("Auth Rules Owner Err: {:?}", auth_rules.owner);
-        }
         UnlockV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
             .edition(Some(&token_mint_edition.to_account_info()))
             .authority(&global_authority.to_account_info())
-            .payer(&owner.to_account_info())
+            .payer(&seller.to_account_info())
             .mint(&nft_mint.to_account_info())
             .metadata(&mint_metadata.to_account_info())
             .token_record(Some(&dest_token_mint_record.to_account_info()))
@@ -1332,7 +1311,7 @@ pub mod mugs_marketplace {
             .metadata(&mint_metadata.to_account_info())
             .edition(Some(&token_mint_edition.to_account_info()))
             .destination_token(&token_account_info.to_account_info())
-            .destination_owner(&owner.to_account_info())
+            .destination_owner(&buyer.to_account_info())
             .destination_token_record(Some(&token_mint_record.to_account_info()))
             .token_record(Some(&dest_token_mint_record.to_account_info()))
             .token_owner(&seller.to_account_info())
