@@ -1,0 +1,12 @@
+/Users/buku/Downloads/cli/target/sbf-solana-solana/release/deps/spl_pod-1d5f8867801d0d91.so: /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/lib.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/bytemuck.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/error.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/optional_keys.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/primitives.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/slice.rs
+
+/Users/buku/Downloads/cli/target/sbf-solana-solana/release/deps/libspl_pod-1d5f8867801d0d91.rlib: /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/lib.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/bytemuck.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/error.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/optional_keys.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/primitives.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/slice.rs
+
+/Users/buku/Downloads/cli/target/sbf-solana-solana/release/deps/spl_pod-1d5f8867801d0d91.d: /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/lib.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/bytemuck.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/error.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/optional_keys.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/primitives.rs /Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/slice.rs
+
+/Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/lib.rs:
+/Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/bytemuck.rs:
+/Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/error.rs:
+/Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/optional_keys.rs:
+/Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/primitives.rs:
+/Users/buku/.cargo/registry/src/index.crates.io-6f17d22bba15001f/spl-pod-0.1.1/src/slice.rs:

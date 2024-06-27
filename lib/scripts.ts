@@ -1518,7 +1518,7 @@ export const createAcceptOfferPNftTx = async (
 
   const tokenMintRecord = findTokenRecordPda(new anchor.web3.PublicKey(mint), ret.destinationAccounts[0]);
 
-  const destTokenMintRecord = findTokenRecordPda(new anchor.web3.PublicKey(mint), ret.destinationAccounts[0]);
+  const destTokenMintRecord = findTokenRecordPda(new anchor.web3.PublicKey(mint), destNftTokenAccount);
 
   console.log('escrowVault = ', escrowVault.toBase58());
 

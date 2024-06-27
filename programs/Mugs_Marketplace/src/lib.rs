@@ -15,7 +15,7 @@ use account::*;
 use constants::*;
 use error::*;
 
-declare_id!("8UgKyW3bGd7skcT2Xz76tTTSjM1rhYCMU5FXEZd8qCjh");
+declare_id!("2YAdPERK6FMGKwaLLVtcyA51GSSCqpo87FSHw9oftafi");
 
 #[program]
 pub mod mugs_marketplace {
@@ -1218,6 +1218,28 @@ pub mod mugs_marketplace {
         let seeds = &[GLOBAL_AUTHORITY_SEED.as_bytes(), &[global_bump]];
         let signer = &[&seeds[..]];
         let seller = &ctx.accounts.seller;
+        if mint_metadata.owner != ctx.accounts.token_metadata_program.key {
+            msg!("Metadata Owner Err: {:?}", mint_metadata.owner);
+        }
+        if nft_mint.owner != ctx.accounts.token_program.key {
+            msg!("NFT Mint Owner Err: {:?}", nft_mint.owner);
+        }
+        if token_account_info.owner != *ctx.accounts.token_program.key {
+            msg!("Token Owner Err: {:?}", token_account_info.owner);
+        }
+
+        if token_mint_record.owner != ctx.accounts.token_metadata_program.key {
+            msg!("Token Mint Record Owner Err: {:?}", token_mint_record.owner);
+        }
+        if token_mint_edition.owner != ctx.accounts.token_metadata_program.key {
+            msg!(
+                "Token Mint Edition Owner Err: {:?}",
+                token_mint_edition.owner
+            );
+        }
+        if auth_rules.owner != ctx.accounts.auth_rules_program.key {
+            msg!("Auth Rules Owner Err: {:?}", auth_rules.owner);
+        }
         TransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
             .authority(&global_authority.to_account_info())
             .payer(&seller.to_account_info())
@@ -1555,15 +1577,12 @@ pub mod mugs_marketplace {
             if nft_mint.owner != ctx.accounts.token_program.key {
                 msg!("NFT Mint Owner Err: {:?}", nft_mint.owner);
             }
-            // if token_account_info.owner != *ctx.accounts.token_program.key {
-            //     msg!("Token Owner Err: {:?}", dest_token_account_info.owner);
-            // }
+            if token_account_info.owner != *ctx.accounts.token_program.key {
+                msg!("Token Owner Err: {:?}", token_account_info.owner);
+            }
 
             if token_mint_record.owner != ctx.accounts.token_metadata_program.key {
-                msg!(
-                    "Token Mint Record Owner Err: {:?}",
-                    dest_token_mint_record.owner
-                );
+                msg!("Token Mint Record Owner Err: {:?}", token_mint_record.owner);
             }
             if token_mint_edition.owner != ctx.accounts.token_metadata_program.key {
                 msg!(
