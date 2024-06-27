@@ -15,14 +15,14 @@ use account::*;
 use constants::*;
 use error::*;
 
-declare_id!("FJ3UtwULCq7UBwqYGk39y7NFH5EcPTEL7A6vobDaYBBY");
+declare_id!("pSBSw594BAyGtYoqx2dYUQTFSJE6yeC2HUwg2AGgLdy");
 
 #[program]
 pub mod mugs_marketplace {
 
     use mpl_token_metadata::instructions::{
         DelegateLockedTransferV1CpiBuilder, DelegateTransferV1CpiBuilder, LockV1CpiBuilder,
-        RevokeLockedTransferV1CpiBuilder, TransferV1CpiBuilder,
+        RevokeLockedTransferV1CpiBuilder, TransferV1CpiBuilder, UnlockV1CpiBuilder,
     };
 
     use super::*;
@@ -688,7 +688,7 @@ pub mod mugs_marketplace {
             );
 
             if expected_token_account == dest_token_account_info.key() {
-                msg!("Create token start");
+                msg!("list pnft start");
 
                 DelegateLockedTransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
                     .master_edition(Some(&token_mint_edition.to_account_info()))
@@ -708,8 +708,23 @@ pub mod mugs_marketplace {
                     .system_program(&system_program.to_account_info())
                     .locked_address(token_account_info.key())
                     .invoke_signed(signer)?;
-
-                msg!("Create token account end");
+                LockV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
+                    .edition(Some(&token_mint_edition.to_account_info()))
+                    .spl_token_program(Some(&token_program.to_account_info()))
+                    .system_program(&system_program.to_account_info())
+                    .authority(&global_authority.to_account_info())
+                    .payer(&owner.to_account_info())
+                    .mint(&nft_mint.to_account_info())
+                    .metadata(&mint_metadata.to_account_info())
+                    .token(&token_account_info.to_account_info())
+                    .token_owner(Some(&owner.to_account_info()))
+                    .token_record(Some(&token_mint_record.to_account_info()))
+                    .authorization_rules(Some(&auth_rules.to_account_info()))
+                    .sysvar_instructions(&sysvar_instructions.to_account_info())
+                    .authorization_rules_program(Some(&auth_rules_program.to_account_info()))
+                    .system_program(&system_program.to_account_info())
+                    .invoke_signed(signer)?;
+                msg!("list pnft ix end");
             } else {
 
                 // no longer needed with delegates
@@ -811,6 +826,22 @@ pub mod mugs_marketplace {
             if auth_rules.owner != ctx.accounts.auth_rules_program.key {
                 msg!("Auth Rules O");
             }
+            UnlockV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
+                .edition(Some(&token_mint_edition.to_account_info()))
+                .spl_token_program(Some(&token_program.to_account_info()))
+                .system_program(&system_program.to_account_info())
+                .authority(&global_authority.to_account_info())
+                .payer(&owner.to_account_info())
+                .mint(&nft_mint.to_account_info())
+                .metadata(&mint_metadata.to_account_info())
+                .token(&token_account_info.to_account_info())
+                .token_owner(Some(&owner.to_account_info()))
+                .token_record(Some(&token_mint_record.to_account_info()))
+                .authorization_rules(Some(&auth_rules.to_account_info()))
+                .sysvar_instructions(&sysvar_instructions.to_account_info())
+                .authorization_rules_program(Some(&auth_rules_program.to_account_info()))
+                .system_program(&system_program.to_account_info())
+                .invoke_signed(signer)?;
             RevokeLockedTransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
                 .master_edition(Some(&token_mint_edition.to_account_info()))
                 .spl_token_program(Some(&token_program.to_account_info()))
@@ -1004,7 +1035,22 @@ pub mod mugs_marketplace {
         }
         buyer_user_pool.traded_volume += sell_data_info.price_sol;
         seller_user_pool.traded_volume += sell_data_info.price_sol;
-
+        UnlockV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
+            .edition(Some(&token_mint_edition.to_account_info()))
+            .authority(&global_authority.to_account_info())
+            .payer(&owner.to_account_info())
+            .mint(&nft_mint.to_account_info())
+            .metadata(&mint_metadata.to_account_info())
+            .token_record(Some(&dest_token_mint_record.to_account_info()))
+            .token_owner(Some(&seller.to_account_info()))
+            .token(&dest_nft_token_account_info.to_account_info())
+            .authorization_rules(Some(&auth_rules.to_account_info()))
+            .spl_token_program(Some(&token_program.to_account_info()))
+            .system_program(&system_program.to_account_info())
+            .sysvar_instructions(&sysvar_instructions.to_account_info())
+            .authorization_rules_program(Some(&auth_rules_program.to_account_info()))
+            .system_program(&system_program.to_account_info())
+            .invoke_signed(signer)?;
         TransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
             .authority(&global_authority.to_account_info())
             .payer(&owner.to_account_info())
@@ -1263,6 +1309,22 @@ pub mod mugs_marketplace {
         if auth_rules.owner != ctx.accounts.auth_rules_program.key {
             msg!("Auth Rules Owner Err: {:?}", auth_rules.owner);
         }
+        UnlockV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
+            .edition(Some(&token_mint_edition.to_account_info()))
+            .authority(&global_authority.to_account_info())
+            .payer(&owner.to_account_info())
+            .mint(&nft_mint.to_account_info())
+            .metadata(&mint_metadata.to_account_info())
+            .token_record(Some(&dest_token_mint_record.to_account_info()))
+            .token_owner(Some(&seller.to_account_info()))
+            .token(&dest_nft_token_account_info.to_account_info())
+            .authorization_rules(Some(&auth_rules.to_account_info()))
+            .spl_token_program(Some(&token_program.to_account_info()))
+            .system_program(&system_program.to_account_info())
+            .sysvar_instructions(&sysvar_instructions.to_account_info())
+            .authorization_rules_program(Some(&auth_rules_program.to_account_info()))
+            .system_program(&system_program.to_account_info())
+            .invoke_signed(signer)?;
         TransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
             .authority(&global_authority.to_account_info())
             .payer(&seller.to_account_info())
@@ -1470,6 +1532,23 @@ pub mod mugs_marketplace {
         let auth_rules = &ctx.accounts.auth_rules;
         let creator = &ctx.accounts.creator;
         msg!("ix3");
+        UnlockV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
+            .edition(Some(&token_mint_edition.to_account_info()))
+            .authority(&global_authority.to_account_info())
+            .payer(&owner.to_account_info())
+            .mint(&nft_mint.to_account_info())
+            .metadata(&mint_metadata.to_account_info())
+            .token_record(Some(&dest_token_mint_record.to_account_info()))
+            .token_owner(Some(&creator.to_account_info()))
+            .token(&dest_token_account_info.to_account_info())
+            .authorization_rules(Some(&auth_rules.to_account_info()))
+            .spl_token_program(Some(&token_program.to_account_info()))
+            .system_program(&system_program.to_account_info())
+            .sysvar_instructions(&sysvar_instructions.to_account_info())
+            .authorization_rules_program(Some(&auth_rules_program.to_account_info()))
+            .system_program(&system_program.to_account_info())
+            .invoke_signed(signer)?;
+        msg!("ix4");
         TransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
             .authority(&global_authority.to_account_info())
             .payer(&owner.to_account_info())
@@ -1616,6 +1695,22 @@ pub mod mugs_marketplace {
             if auth_rules.owner != ctx.accounts.auth_rules_program.key {
                 msg!("Auth Rules O");
             }
+            UnlockV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
+                .edition(Some(&token_mint_edition.to_account_info()))
+                .spl_token_program(Some(&token_program.to_account_info()))
+                .system_program(&system_program.to_account_info())
+                .authority(&global_authority.to_account_info())
+                .payer(&owner.to_account_info())
+                .mint(&nft_mint.to_account_info())
+                .metadata(&mint_metadata.to_account_info())
+                .token(&token_account_info.to_account_info())
+                .token_owner(Some(&owner.to_account_info()))
+                .token_record(Some(&token_mint_record.to_account_info()))
+                .authorization_rules(Some(&auth_rules.to_account_info()))
+                .sysvar_instructions(&sysvar_instructions.to_account_info())
+                .authorization_rules_program(Some(&auth_rules_program.to_account_info()))
+                .system_program(&system_program.to_account_info())
+                .invoke_signed(signer)?;
             RevokeLockedTransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
                 .master_edition(Some(&token_mint_edition.to_account_info()))
                 .spl_token_program(Some(&token_program.to_account_info()))
@@ -1812,6 +1907,22 @@ pub mod mugs_marketplace {
                 .authorization_rules_program(Some(&auth_rules_program.to_account_info()))
                 .system_program(&system_program.to_account_info())
                 .locked_address(token_account_info.key())
+                .invoke_signed(signer)?;
+            LockV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
+                .edition(Some(&token_mint_edition.to_account_info()))
+                .spl_token_program(Some(&token_program.to_account_info()))
+                .system_program(&system_program.to_account_info())
+                .authority(&global_authority.to_account_info())
+                .payer(&owner.to_account_info())
+                .mint(&nft_mint.to_account_info())
+                .metadata(&mint_metadata.to_account_info())
+                .token(&token_account_info.to_account_info())
+                .token_owner(Some(&owner.to_account_info()))
+                .token_record(Some(&token_mint_record.to_account_info()))
+                .authorization_rules(Some(&auth_rules.to_account_info()))
+                .sysvar_instructions(&sysvar_instructions.to_account_info())
+                .authorization_rules_program(Some(&auth_rules_program.to_account_info()))
+                .system_program(&system_program.to_account_info())
                 .invoke_signed(signer)?;
             // TransferV1CpiBuilder::new(&ctx.accounts.token_metadata_program)
             //     .authority(&owner.to_account_info())
