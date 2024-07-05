@@ -1,5 +1,6 @@
 # BAG-Marketplace-Contract
-Solana NFT Marketplace program with NFT Trading & Auction
+
+Solana NFT Marketplace program with NFT Trading & Auction and delegated PNFT support
 
 ## Program Deployment
 
@@ -43,66 +44,93 @@ You can run this command `export BROWSER=` once.
 ## Commands Help
 
 ### init
+
 Initialize Program with creating Global PDA account as Contract Deployer.
 
 ### status
+
 Get global PDA info of program. This will show marketplace fee the treasury wallet distributions.
 
 ### update_fee
+
 Admin able to update the Marketplace Fee with this command as Admin.
+
 - `sol_fee` is the fee in permyraid
 
 ### add_treasury
+
 Admin able to add the team treasury wallet distribution rate for the marketplace fee charge.
+
 - `address` is the treasury wallet
 - `rate` is the wallet's distribution rate by permyraid
 
 ### remove_treasury
+
 Admin able to remove the team treasury wallet.
+
 - `address` is the treasury wallet
 
 ### init_user
+
 Initialize User Data PDA for Escrow Balance & Traded Volume.
 This command should be executed for the first time usage of each traders.
 
 ### user_status
+
 Get user PDA info for traders. This will show user escrow balance and traded volume info.
+
 - `address` is the trader wallet address
 
 ### transfer
+
 Transfer NFT from Sender wallet or it's listed Escrow Account to the Recipient.
+
 - `address` is the NFT mint address
 - `recipient` is the recipient wallet address
 
 ### list
+
 List NFT for sale as Seller.
+
 - `address` is the NFT mint address
 - `price_sol` is the listing price of NFT
 
 ### delist
+
 Cancel Listing of NFT as Seller.
+
 - `address` is the NFT mint address
 
 ### purchase
+
 Purchase the Listed NFT with `Buy Now` price as Buyer.
+
 - `address` is the NFT mint address
 
 ### make_offer
+
 Make offer for a particular Listed NFT as Buyer.
+
 - `address` is the NFT mint address
 - `price` is the offering price. Should be in range of `x1 ~ x0.5` of listed price
 
 ### cancel_offer
+
 Cancel maden offer for a particular Listed NFT as Buyer.
+
 - `address` is the NFT mint address
 
 ### accept_offer
+
 Accpet proper offer from a certain Buyer as Seller.
+
 - `address` is the NFT mint addres
 - `buyer` is the Offer provider address
 
 ### create_auction
+
 Create Auction for a particular NFT for funny trading as Seller.
+
 - `address` is the NFT mint address
 - `start_price` is the bidding start price
 - `min_increase` is the minimum increasing amount for the higer bidding
@@ -110,38 +138,53 @@ Create Auction for a particular NFT for funny trading as Seller.
 - `reserve` if this is 1, then the auction is reserve to start from the first bid placed date. Default 0
 
 ### palce_bid
+
 Participate in auction with higher bidding as Buyer.
+
 - `address` is the NFT mint address
 - `price` is the higher bidding price. Should be more than the latest bid + min_increase_amount
 
 ### claim_auction
+
 Claim NFT for winner as Buyer when auction is ended.
+
 - `address` is the NFT mint address
 
 ### cancel_auction
+
 Cancel auction as Seller if there is no bid until auction ended.
+
 - `address` is the NFT mint address
 
 ### listed_nft_data
+
 Get nft Sell Data PDA info for a particular listed NFT status.
+
 - `address` NFT mint address
 
 ### get_offer_data
+
 Get Offer Data PDA info for a particular Offer status.
+
 - `address` NFT mint address
 - `buyer` is the offer provider address
 
 ### get_auction_data
+
 Get Auction Data PDA info for a particular auction status.
+
 - `address` NFT mint address
 
 ### get_all_listed_nfts
+
 Get all listed NFTs info which is active for sale now.
 
 ### get_all_offers_for_nft
+
 Get all offers info for a particular NFT which is active for accept now.
 
 ### get_all_auctions
+
 Get all auctions info which is live now or not claimed ended auction.
 
 ## Notes for FE Integration
@@ -152,5 +195,6 @@ There is the code part for the `keypair` wallet based `cli` environement case in
 Should configure properly in `BROWSER` environment.
 
 ## BE Tracking Service Activity Parsing Script
+
 This script will fetch past Txs reacted with Our Marketplace Smartcontract. Then will parse an activity from each Txs so that use the info for DB sync up. \
 `yarn be`

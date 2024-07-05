@@ -7,8 +7,8 @@ mugs_marketplace = "pSBSw594BAyGtYoqx2dYUQTFSJE6yeC2HUwg2AGgLdy"
 url = "https://anchor.projectserum.com"
 
 [provider]
-cluster = "https://devnet.helius-rpc.com/?api-key=4401b929-7687-43b5-ab0b-77a34de621e9"
-# cluster = "devnet"
+# cluster = "https://rpc-devnet.hellomoon.io/6a21468a-dd17-4158-a684-29d180654392"
+cluster = "testnet"
 wallet = "./local-creator.json"
 
 [scripts]

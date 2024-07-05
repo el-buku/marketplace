@@ -707,7 +707,7 @@ function programCommand(name: string) {
   return program.command(name).option(
     '-e, --env <string>',
     'Solana cluster env name',
-    'devnet', //mainnet-beta, testnet, devnet
+    'testnet', //mainnet-beta, testnet, devnet
   );
 }
 
